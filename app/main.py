@@ -293,6 +293,15 @@ def api_submit_mock(req: MockSubmitReq):
         db.close()
 
 
+class OtpInitReq(BaseModel):
+    email: str
+    name: str = ""
+    phone: str = ""
+    target_exam: str = "IPMAT Indore"
+
+class OtpVerifyReq(BaseModel):
+    email: str
+    otp: str
 @app.post("/api/auth/register-otp/init")
 def api_reg_otp_init(req: OtpInitReq):
     return initiate_registration_otp(req.full_name, req.email, req.phone, req.password, req.class10_pct, req.class12_pct)
