@@ -1219,6 +1219,23 @@ class CreateVoucherReq(BaseModel):
     valid_days: int = 14
     max_uses: int = 50
 
+class OtpInitReq(BaseModel):
+    full_name: str
+    email: str
+    phone: str
+    password: str
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class OtpVerifyReq(BaseModel):
+    challenge_id: str
+    email_otp: str
+    phone_otp: str
+
+class UpgradeProReq(BaseModel):
+    token: str
+    payment_method: str = "UPI"
+    amount_inr: float = 0.0
 @app.post("/api/auth/register-otp/init")
 def api_reg_otp_init(req: OtpInitReq):
     return initiate_registration_otp(req.full_name, req.email, req.phone, req.password, req.class10_pct, req.class12_pct)
