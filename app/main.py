@@ -32,33 +32,6 @@ if JS_DIR.exists():
     app.mount("/js", StaticFiles(directory=JS_DIR), name="js")
 
 
-class EvaluationRequest(BaseModel):
-    track: str
-    prompt: str
-    student_response: str
-    mode: str = "PI_OR_WAT"
-
-
-class DoubtRequest(BaseModel):
-    track: str
-    topic: str
-    question: str
-    student_attempt: Optional[str] = ""
-
-
-class CallPredictorRequest(BaseModel):
-    class10_pct: float
-    class12_pct: float
-    has_class12_math: bool
-    ipmat_indore_sa: Optional[int] = 0
-    ipmat_indore_mcq: Optional[int] = 0
-    ipmat_indore_va: Optional[int] = 0
-    ipmat_rohtak_score: Optional[int] = 0
-    jipmat_score: Optional[int] = 0
-    iimb_ug_score: Optional[int] = 0
-    jee_main_percentile: Optional[float] = 0.0
-
-
 def _call_gemini(system_instruction: str, user_prompt: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
@@ -80,6 +53,76 @@ def _call_gemini(system_instruction: str, user_prompt: str) -> str:
         raise HTTPException(status_code=502, detail=f"Gemini evaluation error: {str(exc)}")
 
 
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.get("/")
 def serve_home():
     index_file = FRONTEND_DIR / "index.html"
@@ -87,6 +130,76 @@ def serve_home():
         return {"status": "ok", "message": "GOALisB IIM UG & IPM Backend Active. Add frontend/index.html next."}
     return FileResponse(index_file)
 
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.get("/api/health")
 def health_check():
@@ -101,6 +214,76 @@ def health_check():
         "database_configured": bool(os.getenv("DATABASE_URL")),
     }
 
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.post("/api/evaluate")
 def evaluate_response(req: EvaluationRequest):
@@ -117,6 +300,76 @@ def evaluate_response(req: EvaluationRequest):
     return {"track": req.track, "feedback": feedback}
 
 
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.post("/api/doubt")
 def solve_doubt(req: DoubtRequest):
     system_prompt = (
@@ -129,6 +382,76 @@ def solve_doubt(req: DoubtRequest):
     solution = _call_gemini(system_prompt, user_text)
     return {"topic": req.topic, "solution": solution}
 
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.post("/api/call-predictor")
 def predict_iim_calls(req: CallPredictorRequest):
@@ -188,28 +511,29 @@ def predict_iim_calls(req: CallPredictorRequest):
 
 from app.live_ca_engine import load_archive, refresh_live_current_affairs
 
-@app.get("/api/current-affairs")
-def get_live_current_affairs():
-    items = load_archive()
-    if not items:
-        return refresh_live_current_affairs(force=True)
-    return {"status": "ok", "count": len(items), "items": items}
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
 
-@app.post("/api/current-affairs/refresh")
-def trigger_live_ca_refresh():
-    return refresh_live_current_affairs(force=True)
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
 
-
-from pydantic import BaseModel
-from typing import List, Optional
-from app.db_engine import (
-    seed_initial_databank, db_backend_info, register_user, login_user,
-    generate_stratified_mock, list_pyqs_from_db, SessionLocal, MockAttempt, UserSession
-)
-from app.import_ncert_bank import import_from_previous_projects
-
-seed_initial_databank()
-import_from_previous_projects()
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
 
 class RegisterReq(BaseModel):
     full_name: str
@@ -239,22 +563,483 @@ class MockSubmitReq(BaseModel):
     accuracy_pct: float
     attempted_q_codes: List[str] = []
 
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
+@app.get("/api/current-affairs")
+def get_live_current_affairs():
+    items = load_archive()
+    if not items:
+        return refresh_live_current_affairs(force=True)
+    return {"status": "ok", "count": len(items), "items": items}
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
+@app.post("/api/current-affairs/refresh")
+def trigger_live_ca_refresh():
+    return refresh_live_current_affairs(force=True)
+
+
+from pydantic import BaseModel
+from typing import List, Optional
+from app.db_engine import (
+    seed_initial_databank, db_backend_info, register_user, login_user,
+    generate_stratified_mock, list_pyqs_from_db, SessionLocal, MockAttempt, UserSession
+)
+from app.import_ncert_bank import import_from_previous_projects
+
+seed_initial_databank()
+import_from_previous_projects()
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.get("/api/db/status")
 def api_db_status():
     return db_backend_info()
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.post("/api/db/import-ncert")
 def api_import_ncert():
     res = import_from_previous_projects()
     return {**res, **db_backend_info()}
 
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.post("/api/auth/register")
 def api_register(req: RegisterReq):
     return register_user(req.full_name, req.email, req.password, req.target_track, req.category, req.class10_pct, req.class12_pct)
 
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.post("/api/auth/login")
 def api_login(req: LoginReq):
     return login_user(req.email, req.password)
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.post("/api/mock/generate")
 def api_generate_mock(req: MockGenReq):
@@ -268,6 +1053,76 @@ def api_generate_mock(req: MockGenReq):
         import traceback
         traceback.print_exc()
         return {"count": 0, "questions": [], "error": str(e), "db": db_backend_info()}
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.post("/api/mock/submit")
 def api_submit_mock(req: MockSubmitReq):
@@ -293,27 +1148,57 @@ def api_submit_mock(req: MockSubmitReq):
         db.close()
 
 
-@app.post("/api/auth/register-otp/init")
-def api_reg_otp_init(req: OtpInitReq):
-    return initiate_registration_otp(req.full_name, req.email, req.phone, req.password, req.class10_pct, req.class12_pct)
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
 
-@app.post("/api/auth/register-otp/verify")
-def api_reg_otp_verify(req: OtpVerifyReq):
-    return verify_registration_otp(req.challenge_id, req.email_otp, req.phone_otp)
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
 
-@app.get("/api/auth/me")
-def api_auth_me(token: str = ""):
-    u = get_user_by_token(token)
-    if u:
-        return {"ok": True, "user": u}
-    return {"ok": False}
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
 
-@app.post("/api/billing/upgrade-pro")
-def api_upgrade_pro(req: UpgradeProReq):
-    return upgrade_user_to_pro(req.token, req.payment_method, req.amount_inr)
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
 
+class LoginReq(BaseModel):
+    email: str
+    password: str
 
-from app.db_engine import initiate_password_reset_otp, complete_password_reset
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
 
 class ForgotInitReq(BaseModel):
     email: str
@@ -323,9 +1208,391 @@ class ForgotConfirmReq(BaseModel):
     reset_otp: str
     new_password: str
 
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
+@app.post("/api/auth/register-otp/init")
+def api_reg_otp_init(req: OtpInitReq):
+    return initiate_registration_otp(req.full_name, req.email, req.phone, req.password, req.class10_pct, req.class12_pct)
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
+@app.post("/api/auth/register-otp/verify")
+def api_reg_otp_verify(req: OtpVerifyReq):
+    return verify_registration_otp(req.challenge_id, req.email_otp, req.phone_otp)
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
+@app.get("/api/auth/me")
+def api_auth_me(token: str = ""):
+    u = get_user_by_token(token)
+    if u:
+        return {"ok": True, "user": u}
+    return {"ok": False}
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
+@app.post("/api/billing/upgrade-pro")
+def api_upgrade_pro(req: UpgradeProReq):
+    return upgrade_user_to_pro(req.token, req.payment_method, req.amount_inr)
+
+
+from app.db_engine import initiate_password_reset_otp, complete_password_reset
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.post("/api/auth/forgot-password/init")
 def api_forgot_init(req: ForgotInitReq):
     return initiate_password_reset_otp(req.email)
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.post("/api/auth/forgot-password/confirm")
 def api_forgot_confirm(req: ForgotConfirmReq):
@@ -333,6 +1600,66 @@ def api_forgot_confirm(req: ForgotConfirmReq):
 
 
 from app.db_engine import redeem_beta_voucher, create_beta_voucher, BetaVoucher
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
 
 class RedeemVoucherReq(BaseModel):
     token: str
@@ -348,9 +1675,149 @@ class CreateVoucherReq(BaseModel):
 def api_redeem_voucher(req: RedeemVoucherReq):
     return redeem_beta_voucher(req.token, req.code)
 
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.post("/api/admin/vouchers/create")
 def api_create_voucher(req: CreateVoucherReq):
     return create_beta_voucher(req.code, req.label, req.valid_days, req.max_uses)
+
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
 
 @app.get("/api/admin/vouchers")
 def api_list_vouchers():
@@ -362,6 +1829,76 @@ def api_list_vouchers():
         db.close()
 
 from app.db_engine import get_pyq_questions_from_db
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.get("/api/questions")
 def api_get_questions(section: str = "ALL", topic: str = "ALL", exam: str = "ALL", pyq_only: bool = False, limit: int = 25):
     import json
@@ -416,6 +1953,76 @@ def api_get_questions(section: str = "ALL", topic: str = "ALL", exam: str = "ALL
             "exam": r["pyq_exam"] or r["exam_tags"]
         })
     return {"count": len(out), "questions": out}
+class EvaluationRequest(BaseModel):
+    track: str
+    prompt: str
+    student_response: str
+    mode: str = "PI_OR_WAT"
+
+class DoubtRequest(BaseModel):
+    track: str
+    topic: str
+    question: str
+    student_attempt: Optional[str] = ""
+
+class CallPredictorRequest(BaseModel):
+    class10_pct: float
+    class12_pct: float
+    has_class12_math: bool
+    ipmat_indore_sa: Optional[int] = 0
+    ipmat_indore_mcq: Optional[int] = 0
+    ipmat_indore_va: Optional[int] = 0
+    ipmat_rohtak_score: Optional[int] = 0
+    jipmat_score: Optional[int] = 0
+    iimb_ug_score: Optional[int] = 0
+    jee_main_percentile: Optional[float] = 0.0
+
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    target_track: str = "ALL_IIM_MASTER"
+    category: str = "General"
+    class10_pct: float = 90.0
+    class12_pct: float = 90.0
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+
+class MockGenReq(BaseModel):
+    exam_mode: str = "ALL_IIM_MASTER"
+    paper_type: str = "FULL_DIAGNOSTIC"
+    include_ncert: bool = True
+    exclude_codes: List[str] = []
+
+class MockSubmitReq(BaseModel):
+    token: Optional[str] = None
+    exam_track: str
+    paper_type: str
+    score: float
+    max_score: float
+    accuracy_pct: float
+    attempted_q_codes: List[str] = []
+
+class ForgotInitReq(BaseModel):
+    email: str
+
+class ForgotConfirmReq(BaseModel):
+    challenge_id: int
+    reset_otp: str
+    new_password: str
+
+class RedeemVoucherReq(BaseModel):
+    token: str
+    code: str
+
+class CreateVoucherReq(BaseModel):
+    code: str
+    label: str = "Beta Tester Pass"
+    valid_days: int = 14
+    max_uses: int = 50
+
 @app.get("/api/pyq")
 def api_get_pyq(exam: str = "ALL", year: str = "ALL"):
     from app.db_engine import get_pyq_questions_from_db, seed_full_pyq_archive_to_postgres, seed_rich_pyq_expansion, seed_batch1_new_iim_ug_pyqs, seed_batch2_flagship_papers, seed_batch3_cuet_and_indore_archive, db_backend_info
