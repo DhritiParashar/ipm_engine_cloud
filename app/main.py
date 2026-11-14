@@ -1384,6 +1384,14 @@ class CreateVoucherReq(BaseModel):
     valid_days: int = 14
     max_uses: int = 50
 
+from app.db_engine import (
+    get_user_by_token,
+    register_user,
+    login_user,
+    initiate_registration_otp,
+    verify_registration_otp,
+    upgrade_user_to_pro,
+)
 @app.get("/api/auth/me")
 def api_auth_me(token: str = ""):
     u = get_user_by_token(token)
