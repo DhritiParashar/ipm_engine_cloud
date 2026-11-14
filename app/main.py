@@ -80,9 +80,6 @@ def _call_gemini(system_instruction: str, user_prompt: str) -> str:
         raise HTTPException(status_code=502, detail=f"Gemini evaluation error: {str(exc)}")
 
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.get("/")
 def serve_home():
     index_file = FRONTEND_DIR / "index.html"
@@ -90,9 +87,6 @@ def serve_home():
         return {"status": "ok", "message": "GOALisB IIM UG & IPM Backend Active. Add frontend/index.html next."}
     return FileResponse(index_file)
 
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.get("/api/health")
 def health_check():
@@ -107,9 +101,6 @@ def health_check():
         "database_configured": bool(os.getenv("DATABASE_URL")),
     }
 
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/evaluate")
 def evaluate_response(req: EvaluationRequest):
@@ -126,9 +117,6 @@ def evaluate_response(req: EvaluationRequest):
     return {"track": req.track, "feedback": feedback}
 
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/doubt")
 def solve_doubt(req: DoubtRequest):
     system_prompt = (
@@ -141,9 +129,6 @@ def solve_doubt(req: DoubtRequest):
     solution = _call_gemini(system_prompt, user_text)
     return {"topic": req.topic, "solution": solution}
 
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/call-predictor")
 def predict_iim_calls(req: CallPredictorRequest):
@@ -203,18 +188,12 @@ def predict_iim_calls(req: CallPredictorRequest):
 
 from app.live_ca_engine import load_archive, refresh_live_current_affairs
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.get("/api/current-affairs")
 def get_live_current_affairs():
     items = load_archive()
     if not items:
         return refresh_live_current_affairs(force=True)
     return {"status": "ok", "count": len(items), "items": items}
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/current-affairs/refresh")
 def trigger_live_ca_refresh():
@@ -260,37 +239,22 @@ class MockSubmitReq(BaseModel):
     accuracy_pct: float
     attempted_q_codes: List[str] = []
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.get("/api/db/status")
 def api_db_status():
     return db_backend_info()
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/db/import-ncert")
 def api_import_ncert():
     res = import_from_previous_projects()
     return {**res, **db_backend_info()}
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/auth/register")
 def api_register(req: RegisterReq):
     return register_user(req.full_name, req.email, req.password, req.target_track, req.category, req.class10_pct, req.class12_pct)
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/auth/login")
 def api_login(req: LoginReq):
     return login_user(req.email, req.password)
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/mock/generate")
 def api_generate_mock(req: MockGenReq):
@@ -304,9 +268,6 @@ def api_generate_mock(req: MockGenReq):
         import traceback
         traceback.print_exc()
         return {"count": 0, "questions": [], "error": str(e), "db": db_backend_info()}
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/mock/submit")
 def api_submit_mock(req: MockSubmitReq):
@@ -332,31 +293,13 @@ def api_submit_mock(req: MockSubmitReq):
         db.close()
 
 
-class OtpInitReq(BaseModel):
-    email: str
-    name: str = ""
-    phone: str = ""
-    target_exam: str = "IPMAT Indore"
-
-class OtpVerifyReq(BaseModel):
-    email: str
-    otp: str
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/auth/register-otp/init")
 def api_reg_otp_init(req: OtpInitReq):
     return initiate_registration_otp(req.full_name, req.email, req.phone, req.password, req.class10_pct, req.class12_pct)
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/auth/register-otp/verify")
 def api_reg_otp_verify(req: OtpVerifyReq):
     return verify_registration_otp(req.challenge_id, req.email_otp, req.phone_otp)
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.get("/api/auth/me")
 def api_auth_me(token: str = ""):
@@ -364,9 +307,6 @@ def api_auth_me(token: str = ""):
     if u:
         return {"ok": True, "user": u}
     return {"ok": False}
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/billing/upgrade-pro")
 def api_upgrade_pro(req: UpgradeProReq):
@@ -383,15 +323,9 @@ class ForgotConfirmReq(BaseModel):
     reset_otp: str
     new_password: str
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/auth/forgot-password/init")
 def api_forgot_init(req: ForgotInitReq):
     return initiate_password_reset_otp(req.email)
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.post("/api/auth/forgot-password/confirm")
 def api_forgot_confirm(req: ForgotConfirmReq):
@@ -410,22 +344,13 @@ class CreateVoucherReq(BaseModel):
     valid_days: int = 14
     max_uses: int = 50
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/billing/redeem-voucher")
 def api_redeem_voucher(req: RedeemVoucherReq):
     return redeem_beta_voucher(req.token, req.code)
 
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.post("/api/admin/vouchers/create")
 def api_create_voucher(req: CreateVoucherReq):
     return create_beta_voucher(req.code, req.label, req.valid_days, req.max_uses)
-
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
 
 @app.get("/api/admin/vouchers")
 def api_list_vouchers():
@@ -437,9 +362,6 @@ def api_list_vouchers():
         db.close()
 
 from app.db_engine import get_pyq_questions_from_db
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.get("/api/questions")
 def api_get_questions(section: str = "ALL", topic: str = "ALL", exam: str = "ALL", pyq_only: bool = False, limit: int = 25):
     import json
@@ -494,9 +416,6 @@ def api_get_questions(section: str = "ALL", topic: str = "ALL", exam: str = "ALL
             "exam": r["pyq_exam"] or r["exam_tags"]
         })
     return {"count": len(out), "questions": out}
-class UpgradeProReq(BaseModel):
-    model_config = {'extra': 'allow'}
-
 @app.get("/api/pyq")
 def api_get_pyq(exam: str = "ALL", year: str = "ALL"):
     from app.db_engine import get_pyq_questions_from_db, seed_full_pyq_archive_to_postgres, seed_rich_pyq_expansion, seed_batch1_new_iim_ug_pyqs, seed_batch2_flagship_papers, seed_batch3_cuet_and_indore_archive, db_backend_info
