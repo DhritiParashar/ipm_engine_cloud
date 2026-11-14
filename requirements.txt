@@ -1,8 +1,9 @@
 fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-python-dotenv
-pydantic
-httpx
+feedparser
 google-genai
+httpx
+psycopg2-binary
+pydantic
+python-dotenv
+sqlalchemy
+uvicorn[standard]
