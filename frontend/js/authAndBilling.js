@@ -813,7 +813,7 @@ window.handleRegStep2Verify = async function () {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        challenge_id: Number(window.IPM_OTP_CHALLENGE_ID),
+        challenge_id: String(window.IPM_OTP_CHALLENGE_ID),
         email: emailVal,
         email_otp: emailOtp,
         otp: emailOtp,
