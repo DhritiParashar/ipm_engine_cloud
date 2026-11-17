@@ -741,3 +741,98 @@ window.syncHeaderLogoutUI = function () {
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(window.syncHeaderLogoutUI, 200);
 });
+
+// ==============================================================================
+// FIX HTTP 422 PAYLOAD ON VERIFY + READABLE ERROR PARSING + HERO CONTRAST
+// ==============================================================================
+window._PENDING_REG_EMAIL = window._PENDING_REG_EMAIL || "";
+
+(function injectHeroContrastStyle() {
+  if (document.getElementById("goalisb-hero-contrast-fix")) return;
+  const st = document.createElement("style");
+  st.id = "goalisb-hero-contrast-fix";
+  st.textContent = `
+    #login-dashboard-gate .bg-gradient-to-br,
+    #login-dashboard-gate [class*="from-slate-9"],
+    #login-dashboard-gate [class*="from-indigo-950"] {
+      color: #f8fafc !important;
+    }
+    #login-dashboard-gate .bg-gradient-to-br h1,
+    #login-dashboard-gate .bg-gradient-to-br h2,
+    #login-dashboard-gate .bg-gradient-to-br h3,
+    #login-dashboard-gate .bg-gradient-to-br p,
+    #login-dashboard-gate .bg-gradient-to-br li,
+    #login-dashboard-gate [class*="from-slate-9"] h1,
+    #login-dashboard-gate [class*="from-slate-9"] h2,
+    #login-dashboard-gate [class*="from-slate-9"] p,
+    #login-dashboard-gate [class*="from-slate-9"] li {
+      color: #f1f5f9 !important;
+    }
+  `;
+  document.head.appendChild(st);
+})();
+
+window._formatApiError = function (data, fallback) {
+  if (!data) return fallback;
+  if (typeof data.error === "string" && data.error) return data.error;
+  if (typeof data.detail === "string" && data.detail) return data.detail;
+  if (Array.isArray(data.detail)) {
+    return data.detail.map(d => (d.loc ? d.loc.slice(-1)[0] + ": " : "") + (d.msg || JSON.stringify(d))).join("; ");
+  }
+  return fallback;
+};
+
+const _origHandleRegStep1 = window.handleRegStep1;
+window.handleRegStep1 = async function () {
+  const emailEl = document.getElementById("reg-email");
+  if (emailEl && emailEl.value.trim()) {
+    window._PENDING_REG_EMAIL = emailEl.value.trim().toLowerCase();
+  }
+  return _origHandleRegStep1.apply(this, arguments);
+};
+
+window.handleRegStep2Verify = async function () {
+  const emailOtp = (document.getElementById("reg-email-otp")?.value || "").trim();
+  const msg = document.getElementById("dash-msg");
+  if (!emailOtp || emailOtp.length !== 6) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Please enter the 6-digit Email OTP sent to your inbox.";
+    return;
+  }
+  const emailVal = (
+    window._PENDING_REG_EMAIL ||
+    document.getElementById("reg-email")?.value ||
+    document.querySelector("#reg-otp-banner u")?.textContent ||
+    ""
+  ).trim().toLowerCase();
+
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = "Verifying Email OTP & activating workspace...";
+  try {
+    const r = await fetch("/api/auth/register-otp/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        challenge_id: Number(window.IPM_OTP_CHALLENGE_ID),
+        email: emailVal,
+        email_otp: emailOtp,
+        otp: emailOtp,
+        phone_otp: "EMAIL_ONLY"
+      })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = window._formatApiError(data, `Verification failed (${r.status}).`);
+      return;
+    }
+    localStorage.setItem("ipm_auth_token", data.token);
+    window.IPM_USER = data.user;
+    localStorage.setItem("ipm_user_profile", JSON.stringify(data.user));
+    localStorage.setItem("ipm_user", JSON.stringify(data.user));
+    window.location.replace(window.location.pathname);
+  } catch (err) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Verification network error: " + (err && err.message ? err.message : err);
+  }
+};
