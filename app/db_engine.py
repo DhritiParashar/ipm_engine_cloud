@@ -1415,31 +1415,28 @@ def seed_batch3_cuet_and_indore_archive():
             })
 
 seed_batch3_cuet_and_indore_archive()
-
 # ==============================================================================
-# EMAIL-ONLY HTTPS OTP DISPATCHER (BREVO / RESEND) + SINGLE-SESSION LOCK
+# EMAIL-ONLY HTTPS OTP DISPATCHER (BREVO / RESEND) + SAFE SCHEMA & JSON ERRORS
 # ==============================================================================
 import urllib.request
 import urllib.error
 
-def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purpose: str = "Registration") -> tuple[bool, str]:
+def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purpose: str = "Registration"):
     brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
     sender_email = os.environ.get("OTP_SENDER_EMAIL", "contact@goalisb.com").strip()
     sender_name = os.environ.get("OTP_SENDER_NAME", "GOALisB").strip()
 
     subject = f"GOALisB Verification Code: {otp_code} ({purpose})"
-    html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">
-      <h2 style="color:#1e1b4b;margin-top:0;">GOALisB {purpose} Verification</h2>
-      <p style="color:#334155;font-size:14px;">Hi {full_name or 'Aspirant'},</p>
-      <p style="color:#334155;font-size:14px;">Use the 6-digit verification code below to verify your email and activate your single-student learning session:</p>
-      <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:16px;text-align:center;margin:18px 0;">
-        <span style="font-size:28px;font-weight:800;letter-spacing:6px;color:#3730a3;">{otp_code}</span>
-      </div>
-      <p style="color:#64748b;font-size:12px;">This code expires in 15 minutes. Do not share this code with others.</p>
-    </div>
-    """
+    html_body = (
+        f'<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">'
+        f'<h2 style="color:#1e1b4b;margin-top:0;">GOALisB {purpose} Verification</h2>'
+        f'<p style="color:#334155;font-size:14px;">Hi {full_name or "Aspirant"},</p>'
+        f'<p style="color:#334155;font-size:14px;">Use the 6-digit verification code below to verify your email and activate your single-student session:</p>'
+        f'<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:16px;text-align:center;margin:18px 0;">'
+        f'<span style="font-size:28px;font-weight:800;letter-spacing:6px;color:#3730a3;">{otp_code}</span></div>'
+        f'<p style="color:#64748b;font-size:12px;">This code expires in 15 minutes. Do not share this code with others.</p></div>'
+    )
 
     if brevo_key:
         try:
@@ -1458,6 +1455,9 @@ def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purp
             with urllib.request.urlopen(req, timeout=12) as resp:
                 if 200 <= resp.status < 300:
                     return True, "Brevo"
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8", errors="ignore")[:180]
+            return False, f"Brevo HTTP {he.code}: {err_body}"
         except Exception as exc:
             return False, f"Brevo error: {exc}"
 
@@ -1497,9 +1497,14 @@ def initiate_registration_otp(full_name: str, email: str, phone: str, password: 
         if db.query(UserAccount).filter(UserAccount.email == clean_email).first():
             return {"ok": False, "error": "Email already registered. Please log in."}
 
-        existing_phone = db.execute(text("SELECT id FROM ipm_users WHERE phone = :p AND phone <> ''"), {"p": clean_phone}).fetchone()
-        if existing_phone:
-            return {"ok": False, "error": "This mobile number is already linked to a registered student account."}
+        try:
+            db.execute(text("ALTER TABLE ipm_users ADD COLUMN IF NOT EXISTS phone VARCHAR(30) DEFAULT ''"))
+            db.commit()
+            existing_phone = db.execute(text("SELECT id FROM ipm_users WHERE phone = :p AND phone <> ''"), {"p": clean_phone}).fetchone()
+            if existing_phone:
+                return {"ok": False, "error": "This mobile number is already linked to a registered student account."}
+        except Exception:
+            db.rollback()
 
         e_otp = f"{secrets.randbelow(900000) + 100000}"
         ch = OtpChallenge(
@@ -1527,6 +1532,9 @@ def initiate_registration_otp(full_name: str, email: str, phone: str, password: 
             "phone": clean_phone,
             "email_only": True
         }
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"OTP Init DB Error: {exc}"}
     finally:
         db.close()
 
@@ -1613,5 +1621,8 @@ def initiate_password_reset_otp(email: str) -> dict:
         if not sent:
             return {"ok": False, "error": f"Recovery email failed ({provider_info})"}
         return {"ok": True, "challenge_id": ch.id, "email": clean_email}
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"Reset OTP Error: {exc}"}
     finally:
         db.close()
