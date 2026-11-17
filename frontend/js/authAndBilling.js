@@ -451,8 +451,210 @@ window.redeemBetaVoucherCode = async function () {
 };
 
 // ==============================================================================
-// ZERO-LOOP HEADER SYNC & INSTANT LOGOUT / EXIT (PREVENTS CHROME FREEZE)
+// COMPLETE UNIFIED AUTH SUITE: EMAIL-ONLY OTP + 10-MIN RESEND + LOGIN + LOGOUT
 // ==============================================================================
+window._RESEND_COOLDOWN_UNTIL = 0;
+
+window.triggerResendOtp = async function (purpose) {
+  const msg = document.getElementById("dash-msg");
+  const now = Date.now();
+  if (now < window._RESEND_COOLDOWN_UNTIL) {
+    const waitSec = Math.ceil((window._RESEND_COOLDOWN_UNTIL - now) / 1000);
+    msg.className = "text-xs text-amber-500 font-semibold";
+    msg.textContent = `Please wait ${waitSec}s before requesting another resend.`;
+    return;
+  }
+  const cid = purpose === "Password Reset" ? window.IPM_RESET_CHALLENGE_ID : window.IPM_OTP_CHALLENGE_ID;
+  if (!cid) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "No active OTP session found. Please submit Step 1 first.";
+    return;
+  }
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = `Re-dispatching OTP for Ref #${cid}...`;
+  try {
+    const r = await fetch("/api/auth/otp/resend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challenge_id: cid, purpose: purpose })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = data.error || "Failed to resend OTP.";
+      return;
+    }
+    window._RESEND_COOLDOWN_UNTIL = Date.now() + 30000;
+    const mins = Math.max(1, Math.round((data.expires_in || 600) / 60));
+    msg.className = "text-xs text-emerald-600 font-semibold";
+    msg.textContent = data.reused_same_otp
+      ? `Same active OTP (Ref #${data.ref_id}) re-sent to ${data.email} — valid for ~${mins} min.`
+      : `New OTP (Ref #${data.ref_id}) sent to ${data.email} — valid for 10 min.`;
+  } catch (e) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Resend network error: " + (e.message || e);
+  }
+};
+
+window.handleRegStep1 = async function () {
+  const msg = document.getElementById("dash-msg");
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = "Checking account & sending 6-digit verification code...";
+  try {
+    const emailVal = document.getElementById("reg-email").value.trim();
+    const payload = {
+      full_name: document.getElementById("reg-name").value.trim(),
+      class10_pct: Number((document.getElementById("reg-c10") || {}).value || 92),
+      class12_pct: Number((document.getElementById("reg-c12") || {}).value || 90),
+      phone: document.getElementById("reg-phone").value.trim(),
+      email: emailVal,
+      password: document.getElementById("reg-pass").value
+    };
+    const r = await fetch("/api/auth/register-otp/init", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const raw = await r.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = `Server error (${r.status}): ${raw.slice(0, 140)}`;
+      return;
+    }
+    if (!r.ok || !data.ok) {
+      if (data.already_registered && typeof window.switchDashboardView === "function") {
+        window.switchDashboardView("login");
+        const loginEmailEl = document.getElementById("login-email");
+        if (loginEmailEl) loginEmailEl.value = data.email || emailVal;
+      }
+      msg.className = "text-xs text-amber-500 font-semibold";
+      msg.textContent = data.error || data.detail || `Registration error (${r.status})`;
+      return;
+    }
+    msg.textContent = "";
+    window.IPM_OTP_CHALLENGE_ID = data.challenge_id;
+    window._RESEND_COOLDOWN_UNTIL = Date.now() + 30000;
+    document.getElementById("reg-step1").classList.add("hidden");
+    document.getElementById("reg-step2").classList.remove("hidden");
+
+    const phoneOtpEl = document.getElementById("reg-phone-otp");
+    if (phoneOtpEl) {
+      phoneOtpEl.value = "EMAIL_ONLY";
+      const colWrapper = phoneOtpEl.closest("div");
+      if (colWrapper) {
+        colWrapper.classList.add("hidden");
+        if (colWrapper.parentElement) {
+          colWrapper.parentElement.classList.remove("grid-cols-2", "sm:grid-cols-2", "md:grid-cols-2");
+          colWrapper.parentElement.classList.add("grid-cols-1");
+        }
+      }
+    }
+
+    const verifyBtn = document.querySelector("#reg-step2 button[onclick*='handleRegStep2Verify']");
+    if (verifyBtn) {
+      verifyBtn.innerHTML = "Step 2: Verify Email OTP &amp; Enter Free Demo &rarr;";
+    }
+
+    document.getElementById("reg-otp-banner").innerHTML =
+      `<div class="flex items-center justify-between gap-2 flex-wrap">` +
+      `<span><strong>Email OTP Sent (Ref #${data.ref_id || data.challenge_id}):</strong> Code delivered to <u>${data.email}</u>.</span>` +
+      `<button type="button" onclick="window.triggerResendOtp('Account Registration')" class="px-2.5 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-500">Resend Email OTP</button>` +
+      `</div>` +
+      `<div class="text-slate-600 text-[11px] mt-1">Valid for <strong>10 minutes</strong> (resending within 10 min sends the same code). Single-device lock active.</div>`;
+  } catch (err) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Network error: " + (err && err.message ? err.message : err);
+  }
+};
+
+window.handleRegStep2Verify = async function () {
+  const emailOtp = (document.getElementById("reg-email-otp")?.value || "").trim();
+  const msg = document.getElementById("dash-msg");
+  if (!emailOtp || emailOtp.length !== 6) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Please enter the 6-digit Email OTP sent to your inbox.";
+    return;
+  }
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = "Verifying Email OTP & activating workspace...";
+  try {
+    const r = await fetch("/api/auth/register-otp/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        challenge_id: window.IPM_OTP_CHALLENGE_ID,
+        email_otp: emailOtp,
+        phone_otp: "EMAIL_ONLY"
+      })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = data.error || data.detail || "Invalid Email OTP.";
+      return;
+    }
+    localStorage.setItem("ipm_auth_token", data.token);
+    window.IPM_USER = data.user;
+    localStorage.setItem("ipm_user_profile", JSON.stringify(data.user));
+    localStorage.setItem("ipm_user", JSON.stringify(data.user));
+    window.location.replace(window.location.pathname);
+  } catch (err) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Verification network error: " + (err && err.message ? err.message : err);
+  }
+};
+
+window.handleDashboardLogin = async function () {
+  const email = (document.getElementById("login-email")?.value || "").trim();
+  const password = document.getElementById("login-pass")?.value || "";
+  const msg = document.getElementById("dash-msg");
+  if (msg) {
+    msg.className = "text-xs text-indigo-500 font-semibold";
+    msg.textContent = "Signing in...";
+  }
+  try {
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const raw = await r.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) {
+      if (msg) {
+        msg.className = "text-xs text-rose-500 font-semibold";
+        msg.textContent = `Server error (${r.status}): ${raw.slice(0, 120)}`;
+      }
+      return;
+    }
+    if (!r.ok || !data.ok) {
+      if (msg) {
+        msg.className = "text-xs text-rose-500 font-semibold";
+        msg.textContent = data.error || data.detail || "Invalid email or password.";
+      }
+      return;
+    }
+
+    localStorage.setItem("ipm_auth_token", data.token);
+    let userObj = data.user;
+    try {
+      const me = await (await fetch("/api/auth/me?token=" + encodeURIComponent(data.token))).json();
+      if (me && me.ok && me.user) userObj = me.user;
+    } catch (_) {}
+
+    window.IPM_USER = userObj;
+    localStorage.setItem("ipm_user_profile", JSON.stringify(userObj));
+    localStorage.setItem("ipm_user", JSON.stringify(userObj));
+    window.location.replace(window.location.pathname);
+  } catch (err) {
+    if (msg) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = "Login network error: " + (err && err.message ? err.message : err);
+    }
+  }
+};
+
 window.logoutStudent = function (e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
   const tok = localStorage.getItem("ipm_auth_token") || "";
@@ -478,45 +680,57 @@ window.syncHeaderLogoutUI = function () {
   try {
     const user = window.IPM_USER;
     const header = document.querySelector("header");
-    if (!header) return;
-
-    const pill = document.getElementById("header-profile-summary");
-    const authBtn = document.getElementById("auth-header-btn");
-    if (pill && user && user.full_name) {
-      pill.classList.remove("hidden");
-      pill.innerHTML = `<span class="font-bold">&#128100; ${user.full_name}</span> <span class="opacity-60 mx-1">|</span> <span class="text-emerald-400 font-semibold">${user.plan_tier === "PRO" ? "PRO LEARNER" : "FREE DEMO"}</span>`;
-    }
-    if (authBtn) {
-      if (user && user.full_name) {
-        if (authBtn.textContent.trim() !== "Logout / Exit") authBtn.textContent = "Logout / Exit";
-        authBtn.onclick = window.logoutStudent;
-      } else {
-        if (authBtn.textContent.trim() !== "Login / Register") authBtn.textContent = "Login / Register";
+    if (header) {
+      const pill = document.getElementById("header-profile-summary");
+      const authBtn = document.getElementById("auth-header-btn");
+      if (pill && user && user.full_name) {
+        pill.classList.remove("hidden");
+        pill.innerHTML = `<span class="font-bold">&#128100; ${user.full_name}</span> <span class="opacity-60 mx-1">|</span> <span class="text-emerald-400 font-semibold">${user.plan_tier === "PRO" ? "PRO LEARNER" : "FREE DEMO"}</span>`;
       }
-    }
-
-    header.querySelectorAll("button, a").forEach(btn => {
-      const txt = (btn.textContent || "").trim();
-      if (/^(Login\s*\/\s*Register|Logout|Logout\s*\/\s*Exit|Exit)$/i.test(txt)) {
+      if (authBtn) {
         if (user && user.full_name) {
-          if (txt !== "Logout / Exit") btn.textContent = "Logout / Exit";
-          btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500");
-          btn.classList.add("bg-rose-600", "hover:bg-rose-500", "text-white");
-          btn.onclick = window.logoutStudent;
+          authBtn.textContent = "Logout / Exit";
+          authBtn.onclick = window.logoutStudent;
         } else {
-          if (txt !== "Login / Register") btn.textContent = "Login / Register";
-          btn.classList.remove("bg-rose-600", "hover:bg-rose-500");
-          btn.classList.add("bg-indigo-600", "hover:bg-indigo-500", "text-white");
+          authBtn.textContent = "Login / Register";
         }
       }
-    });
+      header.querySelectorAll("button, a").forEach(btn => {
+        const txt = (btn.textContent || "").trim();
+        if (/^(Login\s*\/\s*Register|Logout|Logout\s*\/\s*Exit|Exit)$/i.test(txt)) {
+          if (user && user.full_name) {
+            btn.textContent = "Logout / Exit";
+            btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500");
+            btn.classList.add("bg-rose-600", "hover:bg-rose-500", "text-white");
+            btn.onclick = window.logoutStudent;
+          } else {
+            btn.textContent = "Login / Register";
+            btn.classList.remove("bg-rose-600", "hover:bg-rose-500");
+            btn.classList.add("bg-indigo-600", "hover:bg-indigo-500", "text-white");
+          }
+        }
+      });
+      const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && node.nodeValue.includes("Dina Shah")) {
+          const targetName = (user && user.full_name) ? user.full_name : "Guest Aspirant";
+          node.nodeValue = node.nodeValue.replace(/Dina Shah/g, targetName);
+        }
+      }
+    }
 
-    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
-    let node;
-    while ((node = walker.nextNode())) {
-      if (node.nodeValue && node.nodeValue.includes("Dina Shah")) {
-        const targetName = (user && user.full_name) ? user.full_name : "Guest Aspirant";
-        node.nodeValue = node.nodeValue.replace(/Dina Shah/g, targetName);
+    // Ensure high-contrast white text on dark left hero panel of login gate
+    const gate = document.getElementById("login-dashboard-gate");
+    if (gate) {
+      const darkPanel = gate.querySelector("[class*='from-slate-9'], [class*='from-indigo-950'], [class*='bg-slate-9']");
+      if (darkPanel) {
+        darkPanel.style.color = "#f8fafc";
+        darkPanel.querySelectorAll("h1, h2, h3, p, li, span").forEach(el => {
+          if (!el.className.includes("text-indigo-400") && !el.className.includes("text-emerald")) {
+            el.style.color = "#f1f5f9";
+          }
+        });
       }
     }
   } finally {
@@ -525,5 +739,5 @@ window.syncHeaderLogoutUI = function () {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(window.syncHeaderLogoutUI, 250);
+  setTimeout(window.syncHeaderLogoutUI, 200);
 });
