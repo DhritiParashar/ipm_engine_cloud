@@ -1416,10 +1416,11 @@ def seed_batch3_cuet_and_indore_archive():
 
 seed_batch3_cuet_and_indore_archive()
 # ==============================================================================
-# EMAIL-ONLY HTTPS OTP DISPATCHER (BREVO / RESEND) + SAFE SCHEMA & JSON ERRORS
+# EMAIL-ONLY HTTPS OTP DISPATCHER (BREVO / RESEND) + STRICT DUPLICATE-EMAIL BLOCK
 # ==============================================================================
 import urllib.request
 import urllib.error
+from sqlalchemy import func
 
 def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purpose: str = "Registration"):
     brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
@@ -1494,15 +1495,23 @@ def initiate_registration_otp(full_name: str, email: str, phone: str, password: 
             return {"ok": False, "error": "Please enter a valid mobile number (used to prevent duplicate accounts)."}
         if len(password) < 4:
             return {"ok": False, "error": "Password must be at least 4 characters."}
-        if db.query(UserAccount).filter(UserAccount.email == clean_email).first():
-            return {"ok": False, "error": "Email already registered. Please log in."}
+
+        # Strict case-insensitive duplicate email check across shared PostgreSQL DB
+        existing_user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
+        if existing_user:
+            return {
+                "ok": False,
+                "already_registered": True,
+                "email": clean_email,
+                "error": "This email is already registered. Please log in with your existing password (or use Forgot Password)."
+            }
 
         try:
             db.execute(text("ALTER TABLE ipm_users ADD COLUMN IF NOT EXISTS phone VARCHAR(30) DEFAULT ''"))
             db.commit()
             existing_phone = db.execute(text("SELECT id FROM ipm_users WHERE phone = :p AND phone <> ''"), {"p": clean_phone}).fetchone()
             if existing_phone:
-                return {"ok": False, "error": "This mobile number is already linked to a registered student account."}
+                return {"ok": False, "error": "This mobile number is already linked to a registered student account. Please log in."}
         except Exception:
             db.rollback()
 
@@ -1547,22 +1556,24 @@ def verify_registration_otp(challenge_id: int, email_otp: str, phone_otp: str = 
         if ch.email_otp != email_otp.strip():
             return {"ok": False, "error": "Incorrect Email OTP. Please check the 6-digit code sent to your inbox."}
 
+        # Never overwrite an existing account
+        if db.query(UserAccount).filter(func.lower(UserAccount.email) == ch.email.lower()).first():
+            return {
+                "ok": False,
+                "already_registered": True,
+                "email": ch.email,
+                "error": "This email is already registered. Please log in."
+            }
+
         ch.verified = True
-        user = db.query(UserAccount).filter(UserAccount.email == ch.email).first()
-        if user:
-            user.full_name = ch.full_name
-            user.password_hash = ch.password_hash
-            user.class10_pct = ch.class10_pct
-            user.class12_pct = ch.class12_pct
-        else:
-            user = UserAccount(
-                full_name=ch.full_name,
-                email=ch.email,
-                password_hash=ch.password_hash,
-                class10_pct=ch.class10_pct,
-                class12_pct=ch.class12_pct
-            )
-            db.add(user)
+        user = UserAccount(
+            full_name=ch.full_name,
+            email=ch.email.lower(),
+            password_hash=ch.password_hash,
+            class10_pct=ch.class10_pct,
+            class12_pct=ch.class12_pct
+        )
+        db.add(user)
         db.commit()
         db.refresh(user)
 
@@ -1599,11 +1610,28 @@ def verify_registration_otp(challenge_id: int, email_otp: str, phone_otp: str = 
     finally:
         db.close()
 
+def login_user(email: str, password: str) -> dict:
+    db = SessionLocal()
+    try:
+        clean_email = email.strip().lower()
+        user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
+        if not user or not verify_password(password, user.password_hash):
+            return {"ok": False, "error": "Invalid email or password."}
+        # Single-student anti-sharing lock: invalidate prior sessions on new login
+        db.query(UserSession).filter(UserSession.user_id == user.id).delete()
+        token = secrets.token_urlsafe(32)
+        db.add(UserSession(user_id=user.id, token=token))
+        db.commit()
+        profile = _enforce_expiry_and_build_profile(db, user.id)
+        return {"ok": True, "token": token, "user": profile}
+    finally:
+        db.close()
+
 def initiate_password_reset_otp(email: str) -> dict:
     db = SessionLocal()
     try:
         clean_email = email.strip().lower()
-        user = db.query(UserAccount).filter(UserAccount.email == clean_email).first()
+        user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
         if not user:
             return {"ok": False, "error": "No account found with this email."}
         e_otp = f"{secrets.randbelow(900000) + 100000}"
