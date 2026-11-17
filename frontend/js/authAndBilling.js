@@ -737,3 +737,120 @@ document.addEventListener("DOMContentLoaded", () => {
 if (document.readyState !== "loading") {
   window.syncHeaderLogoutUI();
 }
+// ==============================================================================
+// TIME-BOXED RESEND OTP (10-MIN SAME-CODE REUSE + REF #ID + 30S COOLDOWN)
+// ==============================================================================
+window._RESEND_COOLDOWN_UNTIL = 0;
+
+window.triggerResendOtp = async function (purpose) {
+  const msg = document.getElementById("dash-msg");
+  const now = Date.now();
+  if (now < window._RESEND_COOLDOWN_UNTIL) {
+    const waitSec = Math.ceil((window._RESEND_COOLDOWN_UNTIL - now) / 1000);
+    msg.className = "text-xs text-amber-500 font-semibold";
+    msg.textContent = `Please wait ${waitSec}s before requesting another resend.`;
+    return;
+  }
+  const cid = purpose === "Password Reset" ? window.IPM_RESET_CHALLENGE_ID : window.IPM_OTP_CHALLENGE_ID;
+  if (!cid) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "No active OTP session found. Please submit Step 1 first.";
+    return;
+  }
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = `Re-dispatching OTP for Ref #${cid}...`;
+  try {
+    const r = await fetch("/api/auth/otp/resend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challenge_id: cid, purpose: purpose })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = data.error || "Failed to resend OTP.";
+      return;
+    }
+    window._RESEND_COOLDOWN_UNTIL = Date.now() + 30000;
+    const mins = Math.max(1, Math.round((data.expires_in || 600) / 60));
+    msg.className = "text-xs text-emerald-600 font-semibold";
+    msg.textContent = data.reused_same_otp
+      ? `Same active OTP (Ref #${data.ref_id}) re-sent to ${data.email} — valid for ~${mins} min.`
+      : `New OTP (Ref #${data.ref_id}) sent to ${data.email} — valid for 10 min.`;
+  } catch (e) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Resend network error: " + (e.message || e);
+  }
+};
+
+window.handleRegStep1 = async function () {
+  const msg = document.getElementById("dash-msg");
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = "Checking account & sending 6-digit verification code...";
+  try {
+    const emailVal = document.getElementById("reg-email").value.trim();
+    const payload = {
+      full_name: document.getElementById("reg-name").value.trim(),
+      class10_pct: Number((document.getElementById("reg-c10") || {}).value || 92),
+      class12_pct: Number((document.getElementById("reg-c12") || {}).value || 90),
+      phone: document.getElementById("reg-phone").value.trim(),
+      email: emailVal,
+      password: document.getElementById("reg-pass").value
+    };
+    const r = await fetch("/api/auth/register-otp/init", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const raw = await r.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = `Server error (${r.status}): ${raw.slice(0, 140)}`;
+      return;
+    }
+    if (!r.ok || !data.ok) {
+      if (data.already_registered && typeof window.switchDashboardView === "function") {
+        window.switchDashboardView("login");
+        const loginEmailEl = document.getElementById("login-email");
+        if (loginEmailEl) loginEmailEl.value = data.email || emailVal;
+      }
+      msg.className = "text-xs text-amber-500 font-semibold";
+      msg.textContent = data.error || data.detail || `Registration error (${r.status})`;
+      return;
+    }
+    msg.textContent = "";
+    window.IPM_OTP_CHALLENGE_ID = data.challenge_id;
+    window._RESEND_COOLDOWN_UNTIL = Date.now() + 30000;
+    document.getElementById("reg-step1").classList.add("hidden");
+    document.getElementById("reg-step2").classList.remove("hidden");
+
+    const phoneOtpEl = document.getElementById("reg-phone-otp");
+    if (phoneOtpEl) {
+      phoneOtpEl.value = "EMAIL_ONLY";
+      const colWrapper = phoneOtpEl.closest("div");
+      if (colWrapper) {
+        colWrapper.classList.add("hidden");
+        if (colWrapper.parentElement) {
+          colWrapper.parentElement.classList.remove("grid-cols-2", "sm:grid-cols-2", "md:grid-cols-2");
+          colWrapper.parentElement.classList.add("grid-cols-1");
+        }
+      }
+    }
+
+    const verifyBtn = document.querySelector("#reg-step2 button[onclick*='handleRegStep2Verify']");
+    if (verifyBtn) {
+      verifyBtn.innerHTML = "Step 2: Verify Email OTP &amp; Enter Free Demo &rarr;";
+    }
+
+    document.getElementById("reg-otp-banner").innerHTML =
+      `<div class="flex items-center justify-between gap-2 flex-wrap">` +
+      `<span><strong>Email OTP Sent (Ref #${data.ref_id || data.challenge_id}):</strong> Code delivered to <u>${data.email}</u>.</span>` +
+      `<button type="button" onclick="window.triggerResendOtp('Account Registration')" class="px-2.5 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-500">Resend Email OTP</button>` +
+      `</div>` +
+      `<div class="text-slate-600 text-[11px] mt-1">Valid for <strong>10 minutes</strong> (resending within 10 min sends the same code). Single-device lock active.</div>`;
+  } catch (err) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Network error: " + (err && err.message ? err.message : err);
+  }
+};

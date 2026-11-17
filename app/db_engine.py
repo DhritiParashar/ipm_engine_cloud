@@ -1676,3 +1676,299 @@ def initiate_password_reset_otp(email: str) -> dict:
         return {"ok": False, "error": f"Reset OTP Error: {exc}"}
     finally:
         db.close()
+# ==============================================================================
+# TIME-BOXED OTP DISPATCHER (10-MIN SAME-OTP REUSE + REF ID + EXPIRY ENFORCEMENT)
+# ==============================================================================
+from datetime import datetime, timezone
+
+OTP_VALIDITY_SECONDS = 600  # 10 minutes
+
+def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purpose: str = "Registration", ref_id: int = 0):
+    brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    sender_email = os.environ.get("OTP_SENDER_EMAIL", "contact@goalisb.com").strip()
+    sender_name = os.environ.get("OTP_SENDER_NAME", "GOALisB").strip()
+
+    ref_tag = f" [Ref #{ref_id}]" if ref_id else ""
+    subject = f"GOALisB Verification Code: {otp_code} ({purpose}){ref_tag}"
+    html_body = (
+        f'<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">'
+        f'<div style="display:flex;justify-content:space-between;align-items:center;">'
+        f'<h2 style="color:#1e1b4b;margin:0;">GOALisB {purpose} Verification</h2>'
+        f'<span style="font-size:11px;font-weight:700;color:#4f46e5;background:#eef2ff;padding:3px 8px;border-radius:6px;">Ref #{ref_id}</span></div>'
+        f'<p style="color:#334155;font-size:14px;margin-top:14px;">Hi {full_name or "Aspirant"},</p>'
+        f'<p style="color:#334155;font-size:14px;">Use the 6-digit verification code below to verify your email and activate your single-student session:</p>'
+        f'<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:16px;text-align:center;margin:18px 0;">'
+        f'<span style="font-size:28px;font-weight:800;letter-spacing:6px;color:#3730a3;">{otp_code}</span></div>'
+        f'<p style="color:#64748b;font-size:12px;">Valid for <strong>10 minutes</strong> (Session Ref #{ref_id}). Resending within 10 minutes sends this same code.</p></div>'
+    )
+
+    if brevo_key:
+        try:
+            payload = json.dumps({
+                "sender": {"name": sender_name, "email": sender_email},
+                "to": [{"email": to_email, "name": full_name or "Student"}],
+                "subject": subject,
+                "htmlContent": html_body
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=payload,
+                headers={"api-key": brevo_key, "Content-Type": "application/json", "Accept": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                if 200 <= resp.status < 300:
+                    return True, "Brevo"
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8", errors="ignore")[:180]
+            return False, f"Brevo HTTP {he.code}: {err_body}"
+        except Exception as exc:
+            return False, f"Brevo error: {exc}"
+
+    if resend_key:
+        try:
+            payload = json.dumps({
+                "from": f"{sender_name} <{sender_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_body
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=payload,
+                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                if 200 <= resp.status < 300:
+                    return True, "Resend"
+        except Exception as exc:
+            return False, f"Resend error: {exc}"
+
+    return False, "Set BREVO_API_KEY and OTP_SENDER_EMAIL in Render Environment Variables."
+
+def _otp_age_seconds(ch) -> float:
+    created = getattr(ch, "created_at", None)
+    if not created:
+        return 0.0
+    if created.tzinfo is None:
+        return (datetime.utcnow() - created).total_seconds()
+    return (datetime.now(timezone.utc) - created).total_seconds()
+
+def initiate_registration_otp(full_name: str, email: str, phone: str, password: str, class10_pct: float, class12_pct: float) -> dict:
+    db = SessionLocal()
+    try:
+        clean_email = email.strip().lower()
+        clean_phone = "".join(ch for ch in phone.strip() if ch.isdigit() or ch == "+")
+        if not clean_email or "@" not in clean_email:
+            return {"ok": False, "error": "Please enter a valid email address."}
+        if len(clean_phone) < 8:
+            return {"ok": False, "error": "Please enter a valid mobile number (used to prevent duplicate accounts)."}
+        if len(password) < 4:
+            return {"ok": False, "error": "Password must be at least 4 characters."}
+
+        existing_user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
+        if existing_user:
+            return {
+                "ok": False,
+                "already_registered": True,
+                "email": clean_email,
+                "error": "This email is already registered. Please log in with your existing password (or use Forgot Password)."
+            }
+
+        try:
+            db.execute(text("ALTER TABLE ipm_users ADD COLUMN IF NOT EXISTS phone VARCHAR(30) DEFAULT ''"))
+            db.commit()
+            existing_phone = db.execute(text("SELECT id FROM ipm_users WHERE phone = :p AND phone <> ''"), {"p": clean_phone}).fetchone()
+            if existing_phone:
+                return {"ok": False, "error": "This mobile number is already linked to a registered student account. Please log in."}
+        except Exception:
+            db.rollback()
+
+        # Reuse active unverified challenge within 10-minute window if same email submits again
+        active_ch = (
+            db.query(OtpChallenge)
+            .filter(func.lower(OtpChallenge.email) == clean_email, OtpChallenge.verified == False)
+            .order_by(OtpChallenge.id.desc())
+            .first()
+        )
+        if active_ch and _otp_age_seconds(active_ch) < OTP_VALIDITY_SECONDS:
+            active_ch.full_name = full_name.strip() or active_ch.full_name
+            active_ch.phone = clean_phone
+            active_ch.password_hash = hash_password(password)
+            active_ch.class10_pct = float(class10_pct)
+            active_ch.class12_pct = float(class12_pct)
+            db.commit()
+            ch = active_ch
+            reused = True
+        else:
+            e_otp = f"{secrets.randbelow(900000) + 100000}"
+            ch = OtpChallenge(
+                email=clean_email,
+                phone=clean_phone,
+                full_name=full_name.strip() or "GOALisB Student",
+                password_hash=hash_password(password),
+                class10_pct=float(class10_pct),
+                class12_pct=float(class12_pct),
+                email_otp=e_otp,
+                phone_otp="EMAIL_ONLY"
+            )
+            db.add(ch)
+            db.commit()
+            db.refresh(ch)
+            reused = False
+
+        sent, provider_info = _dispatch_otp_email_https(clean_email, ch.full_name, ch.email_otp, "Account Registration", ch.id)
+        if not sent:
+            return {"ok": False, "error": f"Email OTP dispatch failed ({provider_info})"}
+
+        remaining = max(60, int(OTP_VALIDITY_SECONDS - _otp_age_seconds(ch)))
+        return {
+            "ok": True,
+            "challenge_id": ch.id,
+            "ref_id": ch.id,
+            "expires_in": remaining,
+            "reused_same_otp": reused,
+            "email": clean_email,
+            "phone": clean_phone,
+            "email_only": True
+        }
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"OTP Init Error: {exc}"}
+    finally:
+        db.close()
+
+def resend_otp_challenge(challenge_id: int, purpose: str = "Account Registration") -> dict:
+    db = SessionLocal()
+    try:
+        ch = db.query(OtpChallenge).filter(OtpChallenge.id == int(challenge_id)).first()
+        if not ch:
+            return {"ok": False, "error": "OTP session not found. Please submit Step 1 again."}
+
+        age = _otp_age_seconds(ch)
+        if age < OTP_VALIDITY_SECONDS:
+            # Within 10-minute window: re-send the EXACT SAME OTP so delayed first emails still work
+            reused = True
+        else:
+            # Window expired (>10 mins): rotate to a fresh OTP & reset timestamp
+            ch.email_otp = f"{secrets.randbelow(900000) + 100000}"
+            if hasattr(ch, "created_at"):
+                ch.created_at = datetime.utcnow()
+            db.commit()
+            reused = False
+
+        sent, provider_info = _dispatch_otp_email_https(ch.email, ch.full_name, ch.email_otp, purpose, ch.id)
+        if not sent:
+            return {"ok": False, "error": f"Resend failed ({provider_info})"}
+
+        remaining = max(60, int(OTP_VALIDITY_SECONDS - _otp_age_seconds(ch)))
+        return {
+            "ok": True,
+            "challenge_id": ch.id,
+            "ref_id": ch.id,
+            "reused_same_otp": reused,
+            "expires_in": remaining,
+            "email": ch.email
+        }
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"Resend OTP Error: {exc}"}
+    finally:
+        db.close()
+
+def verify_registration_otp(challenge_id: int, email_otp: str, phone_otp: str = "EMAIL_ONLY") -> dict:
+    db = SessionLocal()
+    try:
+        ch = db.query(OtpChallenge).filter(OtpChallenge.id == int(challenge_id)).first()
+        if not ch:
+            return {"ok": False, "error": "OTP session expired. Please register again."}
+        if _otp_age_seconds(ch) > OTP_VALIDITY_SECONDS:
+            return {"ok": False, "error": f"OTP (Ref #{ch.id}) expired after 10 minutes. Click 'Resend Email OTP' for a fresh code."}
+        if ch.email_otp != email_otp.strip():
+            return {"ok": False, "error": f"Incorrect Email OTP for Ref #{ch.id}. Check the 6-digit code sent to your inbox."}
+
+        if db.query(UserAccount).filter(func.lower(UserAccount.email) == ch.email.lower()).first():
+            return {
+                "ok": False,
+                "already_registered": True,
+                "email": ch.email,
+                "error": "This email is already registered. Please log in."
+            }
+
+        ch.verified = True
+        user = UserAccount(
+            full_name=ch.full_name,
+            email=ch.email.lower(),
+            password_hash=ch.password_hash,
+            class10_pct=ch.class10_pct,
+            class12_pct=ch.class12_pct
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        try:
+            db.execute(
+                text("UPDATE ipm_users SET phone = :p, plan_tier = 'FREE', is_verified = TRUE WHERE id = :uid"),
+                {"p": ch.phone, "uid": user.id}
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        db.query(UserSession).filter(UserSession.user_id == user.id).delete()
+        token = secrets.token_urlsafe(32)
+        db.add(UserSession(user_id=user.id, token=token))
+        db.commit()
+        profile = _build_safe_student_profile(db, user)
+        profile["phone"] = ch.phone
+        return {"ok": True, "token": token, "user": profile}
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"Registration error: {exc}"}
+    finally:
+        db.close()
+
+def initiate_password_reset_otp(email: str) -> dict:
+    db = SessionLocal()
+    try:
+        clean_email = email.strip().lower()
+        user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
+        if not user:
+            return {"ok": False, "error": "No account found with this email."}
+
+        active_ch = (
+            db.query(OtpChallenge)
+            .filter(func.lower(OtpChallenge.email) == clean_email, OtpChallenge.phone == "Registered", OtpChallenge.verified == False)
+            .order_by(OtpChallenge.id.desc())
+            .first()
+        )
+        if active_ch and _otp_age_seconds(active_ch) < OTP_VALIDITY_SECONDS:
+            ch = active_ch
+            reused = True
+        else:
+            e_otp = f"{secrets.randbelow(900000) + 100000}"
+            ch = OtpChallenge(
+                email=clean_email,
+                phone="Registered",
+                full_name=user.full_name,
+                email_otp=e_otp,
+                phone_otp="EMAIL_ONLY"
+            )
+            db.add(ch)
+            db.commit()
+            db.refresh(ch)
+            reused = False
+
+        sent, provider_info = _dispatch_otp_email_https(clean_email, user.full_name, ch.email_otp, "Password Reset", ch.id)
+        if not sent:
+            return {"ok": False, "error": f"Recovery email failed ({provider_info})"}
+        remaining = max(60, int(OTP_VALIDITY_SECONDS - _otp_age_seconds(ch)))
+        return {"ok": True, "challenge_id": ch.id, "ref_id": ch.id, "reused_same_otp": reused, "expires_in": remaining, "email": clean_email}
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"Reset OTP Error: {exc}"}
+    finally:
+        db.close()
