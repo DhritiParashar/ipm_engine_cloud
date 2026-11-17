@@ -2090,6 +2090,7 @@ async def head_ping_middleware(request, call_next):
         return Response(status_code=200)
     return await call_next(request)
 
+from fastapi import Request
 from app.db_engine import resend_otp_challenge
 
 @app.post("/api/auth/otp/resend")
