@@ -854,3 +854,104 @@ window.handleRegStep1 = async function () {
     msg.textContent = "Network error: " + (err && err.message ? err.message : err);
   }
 };
+
+// ==============================================================================
+// IPM ENGINE: HARDENED LOGOUT / EXIT + CLEAN POST-LOGIN TRANSITION
+// ==============================================================================
+window.logoutStudent = async function (e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  const tok = localStorage.getItem("ipm_auth_token") || "";
+  try {
+    if (tok) {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: tok })
+      }).catch(() => {});
+    }
+  } catch (_) {}
+
+  // Wipe every possible cached auth/demo key so Senapati Roy never auto-restores
+  try { localStorage.clear(); } catch (_) {}
+  try { sessionStorage.clear(); } catch (_) {}
+  window.IPM_USER = null;
+
+  if (typeof window.syncHeaderLogoutUI === "function") window.syncHeaderLogoutUI();
+
+  const gate = document.getElementById("login-dashboard-gate");
+  if (gate) {
+    gate.classList.remove("hidden");
+    gate.style.display = "flex";
+  }
+  // Force clean reload into unauthenticated Login/Register gate
+  window.location.replace(window.location.pathname + "?logged_out=1");
+};
+
+window.handleDashboardLogin = async function () {
+  const email = (document.getElementById("login-email")?.value || "").trim();
+  const password = document.getElementById("login-pass")?.value || "";
+  const msg = document.getElementById("dash-msg");
+  if (msg) {
+    msg.className = "text-xs text-indigo-500 font-semibold";
+    msg.textContent = "Signing in...";
+  }
+  try {
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const raw = await r.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) {
+      if (msg) {
+        msg.className = "text-xs text-rose-500 font-semibold";
+        msg.textContent = `Server error (${r.status}): ${raw.slice(0, 120)}`;
+      }
+      return;
+    }
+    if (!r.ok || !data.ok) {
+      if (msg) {
+        msg.className = "text-xs text-rose-500 font-semibold";
+        msg.textContent = data.error || data.detail || "Invalid email or password.";
+      }
+      return;
+    }
+
+    localStorage.setItem("ipm_auth_token", data.token);
+    let userObj = data.user;
+    try {
+      const me = await (await fetch("/api/auth/me?token=" + encodeURIComponent(data.token))).json();
+      if (me && me.ok && me.user) userObj = me.user;
+    } catch (_) {}
+
+    window.IPM_USER = userObj;
+    localStorage.setItem("ipm_user_profile", JSON.stringify(userObj));
+    localStorage.setItem("ipm_user", JSON.stringify(userObj));
+
+    const gate = document.getElementById("login-dashboard-gate");
+    if (gate) {
+      gate.classList.add("hidden");
+      gate.style.display = "none";
+    }
+    // Reload cleanly without ?logged_out=1 so main app hydrates from valid ipm_auth_token
+    window.location.replace(window.location.pathname);
+  } catch (err) {
+    if (msg) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = "Login network error: " + (err && err.message ? err.message : err);
+    }
+  }
+};
+
+// Bind capture-phase click listener on Logout / Exit button so nothing overrides it
+document.addEventListener("click", function (e) {
+  const btn = e.target && e.target.closest("button, a");
+  if (!btn) return;
+  const txt = (btn.textContent || "").trim();
+  if (/^(Logout\s*\/\s*Exit|Logout|Exit)$/i.test(txt) || btn.id === "auth-header-btn") {
+    if (window.IPM_USER || localStorage.getItem("ipm_auth_token") || /Logout|Exit/i.test(txt)) {
+      window.logoutStudent(e);
+    }
+  }
+}, true);
