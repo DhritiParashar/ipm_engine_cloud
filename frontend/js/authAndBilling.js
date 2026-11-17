@@ -449,3 +449,58 @@ window.redeemBetaVoucherCode = async function () {
   alert(`Beta Voucher Activated (${data.label})! Full Pro Learner access unlocked for ${data.valid_days} days.`);
   window.renderActiveTab();
 };
+
+// ==============================================================================
+// EMAIL-ONLY OTP FRONTEND HANDLERS (CLEAN SINGLE-COLUMN EMAIL OTP + CACHE BUST)
+// ==============================================================================
+window.handleRegStep1 = async function () {
+  const msg = document.getElementById("dash-msg");
+  msg.className = "text-xs text-indigo-600 font-semibold";
+  msg.textContent = "Sending 6-digit verification code to your email...";
+  const payload = {
+    full_name: document.getElementById("reg-name").value.trim(),
+    class10_pct: Number((document.getElementById("reg-c10") || {}).value || 92),
+    class12_pct: Number((document.getElementById("reg-c12") || {}).value || 90),
+    phone: document.getElementById("reg-phone").value.trim(),
+    email: document.getElementById("reg-email").value.trim(),
+    password: document.getElementById("reg-pass").value
+  };
+  const r = await fetch("/api/auth/register-otp/init", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await r.json();
+  if (!data.ok) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = data.error || "Registration error.";
+    return;
+  }
+  msg.textContent = "";
+  window.IPM_OTP_CHALLENGE_ID = data.challenge_id;
+  document.getElementById("reg-step1").classList.add("hidden");
+  document.getElementById("reg-step2").classList.remove("hidden");
+
+  // Hide the entire 6-Digit Phone OTP column & make Email OTP full-width
+  const phoneOtpEl = document.getElementById("reg-phone-otp");
+  if (phoneOtpEl) {
+    phoneOtpEl.value = "EMAIL_ONLY";
+    const colWrapper = phoneOtpEl.closest("div");
+    if (colWrapper) {
+      colWrapper.classList.add("hidden");
+      if (colWrapper.parentElement) {
+        colWrapper.parentElement.classList.remove("grid-cols-2", "sm:grid-cols-2", "md:grid-cols-2");
+        colWrapper.parentElement.classList.add("grid-cols-1");
+      }
+    }
+  }
+
+  const verifyBtn = document.querySelector("#reg-step2 button[onclick*='handleRegStep2Verify']");
+  if (verifyBtn) {
+    verifyBtn.innerHTML = "Step 2: Verify Email OTP &amp; Enter Free Demo &rarr;";
+  }
+
+  document.getElementById("reg-otp-banner").innerHTML =
+    `<strong>Email Verification Code Sent:</strong> Enter the 6-digit OTP delivered to <u>${data.email}</u>.<br>` +
+    `<span class="text-slate-600 text-[11px]">Check Inbox or Spam/Promotions folder. Single-device anti-sharing lock is active.</span>`;
+};
