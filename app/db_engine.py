@@ -1416,7 +1416,7 @@ def seed_batch3_cuet_and_indore_archive():
 
 seed_batch3_cuet_and_indore_archive()
 # ==============================================================================
-# EMAIL-ONLY HTTPS OTP DISPATCHER (BREVO / RESEND) + STRICT DUPLICATE-EMAIL BLOCK
+# EMAIL-ONLY HTTPS OTP DISPATCHER + SELF-CONTAINED LOGIN + RESEND OTP (ALL APPS)
 # ==============================================================================
 import urllib.request
 import urllib.error
@@ -1484,6 +1484,39 @@ def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purp
 
     return False, "Set BREVO_API_KEY and OTP_SENDER_EMAIL in Render Environment Variables."
 
+def _build_safe_student_profile(db, user) -> dict:
+    plan_tier = "FREE"
+    phone_val = ""
+    is_verified = True
+    try:
+        for ddl in [
+            "ALTER TABLE ipm_users ADD COLUMN IF NOT EXISTS phone VARCHAR(30) DEFAULT ''",
+            "ALTER TABLE ipm_users ADD COLUMN IF NOT EXISTS plan_tier VARCHAR(20) DEFAULT 'FREE'",
+            "ALTER TABLE ipm_users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT TRUE"
+        ]:
+            db.execute(text(ddl))
+        db.commit()
+        row = db.execute(
+            text("SELECT COALESCE(plan_tier, 'FREE'), COALESCE(phone, ''), COALESCE(is_verified, TRUE) FROM ipm_users WHERE id = :uid"),
+            {"uid": user.id}
+        ).fetchone()
+        if row:
+            plan_tier = row[0] or "FREE"
+            phone_val = row[1] or ""
+            is_verified = bool(row[2])
+    except Exception:
+        db.rollback()
+    return {
+        "id": user.id,
+        "full_name": getattr(user, "full_name", "GOALisB Student") or "GOALisB Student",
+        "email": user.email,
+        "phone": phone_val,
+        "class10_pct": float(getattr(user, "class10_pct", 90.0) or 90.0),
+        "class12_pct": float(getattr(user, "class12_pct", 90.0) or 90.0),
+        "plan_tier": plan_tier,
+        "is_verified": is_verified
+    }
+
 def initiate_registration_otp(full_name: str, email: str, phone: str, password: str, class10_pct: float, class12_pct: float) -> dict:
     db = SessionLocal()
     try:
@@ -1496,7 +1529,6 @@ def initiate_registration_otp(full_name: str, email: str, phone: str, password: 
         if len(password) < 4:
             return {"ok": False, "error": "Password must be at least 4 characters."}
 
-        # Strict case-insensitive duplicate email check across shared PostgreSQL DB
         existing_user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
         if existing_user:
             return {
@@ -1543,7 +1575,7 @@ def initiate_registration_otp(full_name: str, email: str, phone: str, password: 
         }
     except Exception as exc:
         db.rollback()
-        return {"ok": False, "error": f"OTP Init DB Error: {exc}"}
+        return {"ok": False, "error": f"OTP Init Error: {exc}"}
     finally:
         db.close()
 
@@ -1556,7 +1588,6 @@ def verify_registration_otp(challenge_id: int, email_otp: str, phone_otp: str = 
         if ch.email_otp != email_otp.strip():
             return {"ok": False, "error": "Incorrect Email OTP. Please check the 6-digit code sent to your inbox."}
 
-        # Never overwrite an existing account
         if db.query(UserAccount).filter(func.lower(UserAccount.email) == ch.email.lower()).first():
             return {
                 "ok": False,
@@ -1590,20 +1621,9 @@ def verify_registration_otp(challenge_id: int, email_otp: str, phone_otp: str = 
         token = secrets.token_urlsafe(32)
         db.add(UserSession(user_id=user.id, token=token))
         db.commit()
-        return {
-            "ok": True,
-            "token": token,
-            "user": {
-                "id": user.id,
-                "full_name": user.full_name,
-                "email": user.email,
-                "phone": ch.phone,
-                "class10_pct": user.class10_pct,
-                "class12_pct": user.class12_pct,
-                "plan_tier": "FREE",
-                "is_verified": True
-            }
-        }
+        profile = _build_safe_student_profile(db, user)
+        profile["phone"] = ch.phone
+        return {"ok": True, "token": token, "user": profile}
     except Exception as exc:
         db.rollback()
         return {"ok": False, "error": f"Registration error: {exc}"}
@@ -1617,13 +1637,15 @@ def login_user(email: str, password: str) -> dict:
         user = db.query(UserAccount).filter(func.lower(UserAccount.email) == clean_email).first()
         if not user or not verify_password(password, user.password_hash):
             return {"ok": False, "error": "Invalid email or password."}
-        # Single-student anti-sharing lock: invalidate prior sessions on new login
         db.query(UserSession).filter(UserSession.user_id == user.id).delete()
         token = secrets.token_urlsafe(32)
         db.add(UserSession(user_id=user.id, token=token))
         db.commit()
-        profile = _enforce_expiry_and_build_profile(db, user.id)
+        profile = _build_safe_student_profile(db, user)
         return {"ok": True, "token": token, "user": profile}
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"Login DB Error: {exc}"}
     finally:
         db.close()
 
