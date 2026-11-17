@@ -657,3 +657,83 @@ window.handleRegStep1 = async function () {
     msg.textContent = "Network error: " + (err && err.message ? err.message : err);
   }
 };
+// ==============================================================================
+// UNIFIED TOP HEADER ACCOUNT & LOGOUT / EXIT BUTTON SYNC (ALL 5 ENGINES)
+// ==============================================================================
+window.logoutStudent = function () {
+  localStorage.removeItem("ipm_auth_token");
+  localStorage.removeItem("ipm_user_profile");
+  localStorage.removeItem("goalisb_postgrad_profile_v1");
+  localStorage.removeItem("ipm_user");
+  window.IPM_USER = null;
+  if (typeof window.renderHeaderAccountBar === "function") window.renderHeaderAccountBar();
+  const gate = document.getElementById("login-dashboard-gate");
+  if (gate) {
+    gate.classList.remove("hidden");
+    gate.style.display = "";
+  } else {
+    location.reload();
+  }
+};
+
+window.syncHeaderLogoutUI = function () {
+  const user = window.IPM_USER;
+  const header = document.querySelector("header") || document.body;
+
+  // 1. Update known IDs if present
+  const pill = document.getElementById("header-profile-summary");
+  const authBtn = document.getElementById("auth-header-btn");
+  if (pill && user && user.full_name) {
+    pill.classList.remove("hidden");
+    pill.innerHTML = `<span class="font-bold">&#128100; ${user.full_name}</span> <span class="opacity-60 mx-1">|</span> <span class="text-emerald-400 font-semibold">${user.plan_tier === "PRO" ? "PRO LEARNER" : "FREE DEMO"}</span>`;
+  }
+  if (authBtn) {
+    if (user && user.full_name) {
+      authBtn.textContent = "Logout / Exit";
+      authBtn.onclick = window.logoutStudent;
+    } else {
+      authBtn.textContent = "Login / Register";
+    }
+  }
+
+  // 2. Also update GRE/GMAT/CAT header buttons & replace hardcoded "Dina Shah" placeholder
+  const headerBtns = Array.from(header.querySelectorAll("button, a"));
+  headerBtns.forEach(btn => {
+    const txt = (btn.textContent || "").trim();
+    if (/^(Login\s*\/\s*Register|Logout|Logout\s*\/\s*Exit|Exit)$/i.test(txt)) {
+      if (user && user.full_name) {
+        btn.textContent = "Logout / Exit";
+        btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500");
+        btn.classList.add("bg-rose-600", "hover:bg-rose-500", "text-white");
+        btn.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.logoutStudent();
+        };
+      } else {
+        btn.textContent = "Login / Register";
+        btn.classList.remove("bg-rose-600", "hover:bg-rose-500");
+        btn.classList.add("bg-indigo-600", "hover:bg-indigo-500", "text-white");
+      }
+    }
+  });
+
+  // Replace stale "Dina Shah" demo pill in header with real logged-in user or Guest Mode
+  const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.nodeValue && node.nodeValue.includes("Dina Shah")) {
+      node.nodeValue = (user && user.full_name)
+        ? node.nodeValue.replace("Dina Shah", user.full_name)
+        : node.nodeValue.replace("Dina Shah", "Guest Aspirant");
+    }
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(window.syncHeaderLogoutUI, 150);
+  setTimeout(window.syncHeaderLogoutUI, 800);
+});
+if (document.readyState !== "loading") {
+  setTimeout(window.syncHeaderLogoutUI, 100);
+}
