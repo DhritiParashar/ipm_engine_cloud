@@ -679,7 +679,7 @@ def trigger_live_ca_refresh():
 
 from pydantic import BaseModel
 from typing import List, Optional
-from app.db_engine import (, resend_otp_challenge
+from app.db_engine import (
     seed_initial_databank, db_backend_info, register_user, login_user,
     generate_stratified_mock, list_pyqs_from_db, SessionLocal, MockAttempt, UserSession
 )
@@ -2089,6 +2089,8 @@ async def head_ping_middleware(request, call_next):
     if request.method == "HEAD":
         return Response(status_code=200)
     return await call_next(request)
+
+from app.db_engine import resend_otp_challenge
 
 @app.post("/api/auth/otp/resend")
 async def api_resend_otp(request: Request):
