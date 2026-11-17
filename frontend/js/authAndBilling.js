@@ -658,15 +658,72 @@ window.handleRegStep1 = async function () {
   }
 };
 // ==============================================================================
-// UNIFIED TOP HEADER ACCOUNT & LOGOUT / EXIT BUTTON SYNC (ALL 5 ENGINES)
+// UNIFIED LOGIN HANDLER + PERSISTENT HEADER LOGOUT & REAL-USER SYNC (ALL 5 APPS)
 // ==============================================================================
+window.handleDashboardLogin = async function () {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-pass").value;
+  const msg = document.getElementById("dash-msg");
+  msg.className = "text-xs text-indigo-500 font-semibold";
+  msg.textContent = "Signing in...";
+  try {
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const raw = await r.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = `Server error (${r.status}): ${raw.slice(0, 120)}`;
+      return;
+    }
+    if (!r.ok || !data.ok) {
+      msg.className = "text-xs text-rose-500 font-semibold";
+      msg.textContent = data.error || data.detail || "Invalid email or password.";
+      return;
+    }
+    localStorage.setItem("ipm_auth_token", data.token);
+    let userObj = data.user;
+    try {
+      const me = await (await fetch("/api/auth/me?token=" + encodeURIComponent(data.token))).json();
+      if (me && me.ok && me.user) userObj = me.user;
+    } catch (e) {}
+    window.IPM_USER = userObj;
+    localStorage.setItem("ipm_user_profile", JSON.stringify(userObj));
+    localStorage.setItem("goalisb_postgrad_profile_v1", JSON.stringify({
+      name: userObj.full_name,
+      email: userObj.email,
+      plan_tier: userObj.plan_tier || "FREE"
+    }));
+    const gate = document.getElementById("login-dashboard-gate");
+    if (gate) {
+      gate.classList.add("hidden");
+      gate.style.display = "none";
+    }
+    if (typeof window.syncHeaderLogoutUI === "function") window.syncHeaderLogoutUI();
+    if (typeof window.renderHeaderAccountBar === "function") {
+      try { window.renderHeaderAccountBar(); } catch (e) {}
+    }
+    if (typeof window.renderActiveTab === "function") {
+      try { window.renderActiveTab(); } catch (e) { location.reload(); }
+    } else {
+      location.reload();
+    }
+  } catch (err) {
+    msg.className = "text-xs text-rose-500 font-semibold";
+    msg.textContent = "Login network error: " + (err && err.message ? err.message : err);
+  }
+};
+
 window.logoutStudent = function () {
   localStorage.removeItem("ipm_auth_token");
   localStorage.removeItem("ipm_user_profile");
   localStorage.removeItem("goalisb_postgrad_profile_v1");
   localStorage.removeItem("ipm_user");
   window.IPM_USER = null;
-  if (typeof window.renderHeaderAccountBar === "function") window.renderHeaderAccountBar();
+  if (typeof window.syncHeaderLogoutUI === "function") window.syncHeaderLogoutUI();
   const gate = document.getElementById("login-dashboard-gate");
   if (gate) {
     gate.classList.remove("hidden");
@@ -676,64 +733,72 @@ window.logoutStudent = function () {
   }
 };
 
+window._syncingHeader = false;
 window.syncHeaderLogoutUI = function () {
-  const user = window.IPM_USER;
-  const header = document.querySelector("header") || document.body;
+  if (window._syncingHeader) return;
+  window._syncingHeader = true;
+  try {
+    const user = window.IPM_USER;
+    const header = document.querySelector("header") || document.body;
 
-  // 1. Update known IDs if present
-  const pill = document.getElementById("header-profile-summary");
-  const authBtn = document.getElementById("auth-header-btn");
-  if (pill && user && user.full_name) {
-    pill.classList.remove("hidden");
-    pill.innerHTML = `<span class="font-bold">&#128100; ${user.full_name}</span> <span class="opacity-60 mx-1">|</span> <span class="text-emerald-400 font-semibold">${user.plan_tier === "PRO" ? "PRO LEARNER" : "FREE DEMO"}</span>`;
-  }
-  if (authBtn) {
-    if (user && user.full_name) {
-      authBtn.textContent = "Logout / Exit";
-      authBtn.onclick = window.logoutStudent;
-    } else {
-      authBtn.textContent = "Login / Register";
+    const pill = document.getElementById("header-profile-summary");
+    const authBtn = document.getElementById("auth-header-btn");
+    if (pill && user && user.full_name) {
+      pill.classList.remove("hidden");
+      pill.innerHTML = `<span class="font-bold">&#128100; ${user.full_name}</span> <span class="opacity-60 mx-1">|</span> <span class="text-emerald-400 font-semibold">${user.plan_tier === "PRO" ? "PRO LEARNER" : "FREE DEMO"}</span>`;
     }
-  }
-
-  // 2. Also update GRE/GMAT/CAT header buttons & replace hardcoded "Dina Shah" placeholder
-  const headerBtns = Array.from(header.querySelectorAll("button, a"));
-  headerBtns.forEach(btn => {
-    const txt = (btn.textContent || "").trim();
-    if (/^(Login\s*\/\s*Register|Logout|Logout\s*\/\s*Exit|Exit)$/i.test(txt)) {
+    if (authBtn) {
       if (user && user.full_name) {
-        btn.textContent = "Logout / Exit";
-        btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500");
-        btn.classList.add("bg-rose-600", "hover:bg-rose-500", "text-white");
-        btn.onclick = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          window.logoutStudent();
-        };
+        authBtn.textContent = "Logout / Exit";
+        authBtn.onclick = window.logoutStudent;
       } else {
-        btn.textContent = "Login / Register";
-        btn.classList.remove("bg-rose-600", "hover:bg-rose-500");
-        btn.classList.add("bg-indigo-600", "hover:bg-indigo-500", "text-white");
+        authBtn.textContent = "Login / Register";
       }
     }
-  });
 
-  // Replace stale "Dina Shah" demo pill in header with real logged-in user or Guest Mode
-  const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.nodeValue && node.nodeValue.includes("Dina Shah")) {
-      node.nodeValue = (user && user.full_name)
-        ? node.nodeValue.replace("Dina Shah", user.full_name)
-        : node.nodeValue.replace("Dina Shah", "Guest Aspirant");
+    const headerBtns = Array.from(header.querySelectorAll("button, a"));
+    headerBtns.forEach(btn => {
+      const txt = (btn.textContent || "").trim();
+      if (/^(Login\s*\/\s*Register|Logout|Logout\s*\/\s*Exit|Exit)$/i.test(txt)) {
+        if (user && user.full_name) {
+          if (txt !== "Logout / Exit") btn.textContent = "Logout / Exit";
+          btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500");
+          btn.classList.add("bg-rose-600", "hover:bg-rose-500", "text-white");
+          btn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.logoutStudent();
+          };
+        } else {
+          if (txt !== "Login / Register") btn.textContent = "Login / Register";
+          btn.classList.remove("bg-rose-600", "hover:bg-rose-500");
+          btn.classList.add("bg-indigo-600", "hover:bg-indigo-500", "text-white");
+        }
+      }
+    });
+
+    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue && (node.nodeValue.includes("Dina Shah") || node.nodeValue.includes("Guest Aspirant"))) {
+        const targetName = (user && user.full_name) ? user.full_name : "Guest Aspirant";
+        const updated = node.nodeValue.replace(/Dina Shah|Guest Aspirant/g, targetName);
+        if (node.nodeValue !== updated) node.nodeValue = updated;
+      }
     }
+  } finally {
+    window._syncingHeader = false;
   }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(window.syncHeaderLogoutUI, 150);
-  setTimeout(window.syncHeaderLogoutUI, 800);
+  window.syncHeaderLogoutUI();
+  const headerEl = document.querySelector("header");
+  if (headerEl && typeof MutationObserver !== "undefined") {
+    const obs = new MutationObserver(() => window.syncHeaderLogoutUI());
+    obs.observe(headerEl, { childList: true, subtree: true, characterData: true });
+  }
 });
 if (document.readyState !== "loading") {
-  setTimeout(window.syncHeaderLogoutUI, 100);
+  window.syncHeaderLogoutUI();
 }
