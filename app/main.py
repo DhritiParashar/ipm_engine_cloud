@@ -1243,7 +1243,7 @@ class OtpInitReq(BaseModel):
 class OtpVerifyReq(BaseModel):
     challenge_id: str
     email_otp: str
-    phone_otp: str
+    phone_otp: Optional[str] = "EMAIL_ONLY"
 
 class UpgradeProReq(BaseModel):
     token: str

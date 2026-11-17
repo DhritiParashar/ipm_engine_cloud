@@ -1415,3 +1415,203 @@ def seed_batch3_cuet_and_indore_archive():
             })
 
 seed_batch3_cuet_and_indore_archive()
+
+# ==============================================================================
+# EMAIL-ONLY HTTPS OTP DISPATCHER (BREVO / RESEND) + SINGLE-SESSION LOCK
+# ==============================================================================
+import urllib.request
+import urllib.error
+
+def _dispatch_otp_email_https(to_email: str, full_name: str, otp_code: str, purpose: str = "Registration") -> tuple[bool, str]:
+    brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    sender_email = os.environ.get("OTP_SENDER_EMAIL", "contact@goalisb.com").strip()
+    sender_name = os.environ.get("OTP_SENDER_NAME", "GOALisB").strip()
+
+    subject = f"GOALisB Verification Code: {otp_code} ({purpose})"
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">
+      <h2 style="color:#1e1b4b;margin-top:0;">GOALisB {purpose} Verification</h2>
+      <p style="color:#334155;font-size:14px;">Hi {full_name or 'Aspirant'},</p>
+      <p style="color:#334155;font-size:14px;">Use the 6-digit verification code below to verify your email and activate your single-student learning session:</p>
+      <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:16px;text-align:center;margin:18px 0;">
+        <span style="font-size:28px;font-weight:800;letter-spacing:6px;color:#3730a3;">{otp_code}</span>
+      </div>
+      <p style="color:#64748b;font-size:12px;">This code expires in 15 minutes. Do not share this code with others.</p>
+    </div>
+    """
+
+    if brevo_key:
+        try:
+            payload = json.dumps({
+                "sender": {"name": sender_name, "email": sender_email},
+                "to": [{"email": to_email, "name": full_name or "Student"}],
+                "subject": subject,
+                "htmlContent": html_body
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=payload,
+                headers={"api-key": brevo_key, "Content-Type": "application/json", "Accept": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                if 200 <= resp.status < 300:
+                    return True, "Brevo"
+        except Exception as exc:
+            return False, f"Brevo error: {exc}"
+
+    if resend_key:
+        try:
+            payload = json.dumps({
+                "from": f"{sender_name} <{sender_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_body
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=payload,
+                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                if 200 <= resp.status < 300:
+                    return True, "Resend"
+        except Exception as exc:
+            return False, f"Resend error: {exc}"
+
+    return False, "Set BREVO_API_KEY and OTP_SENDER_EMAIL in Render Environment Variables."
+
+def initiate_registration_otp(full_name: str, email: str, phone: str, password: str, class10_pct: float, class12_pct: float) -> dict:
+    db = SessionLocal()
+    try:
+        clean_email = email.strip().lower()
+        clean_phone = "".join(ch for ch in phone.strip() if ch.isdigit() or ch == "+")
+        if not clean_email or "@" not in clean_email:
+            return {"ok": False, "error": "Please enter a valid email address."}
+        if len(clean_phone) < 8:
+            return {"ok": False, "error": "Please enter a valid mobile number (used to prevent duplicate accounts)."}
+        if len(password) < 4:
+            return {"ok": False, "error": "Password must be at least 4 characters."}
+        if db.query(UserAccount).filter(UserAccount.email == clean_email).first():
+            return {"ok": False, "error": "Email already registered. Please log in."}
+
+        existing_phone = db.execute(text("SELECT id FROM ipm_users WHERE phone = :p AND phone <> ''"), {"p": clean_phone}).fetchone()
+        if existing_phone:
+            return {"ok": False, "error": "This mobile number is already linked to a registered student account."}
+
+        e_otp = f"{secrets.randbelow(900000) + 100000}"
+        ch = OtpChallenge(
+            email=clean_email,
+            phone=clean_phone,
+            full_name=full_name.strip() or "GOALisB Student",
+            password_hash=hash_password(password),
+            class10_pct=float(class10_pct),
+            class12_pct=float(class12_pct),
+            email_otp=e_otp,
+            phone_otp="EMAIL_ONLY"
+        )
+        db.add(ch)
+        db.commit()
+        db.refresh(ch)
+
+        sent, provider_info = _dispatch_otp_email_https(clean_email, ch.full_name, e_otp, "Account Registration")
+        if not sent:
+            return {"ok": False, "error": f"Email OTP dispatch failed ({provider_info})"}
+
+        return {
+            "ok": True,
+            "challenge_id": ch.id,
+            "email": clean_email,
+            "phone": clean_phone,
+            "email_only": True
+        }
+    finally:
+        db.close()
+
+def verify_registration_otp(challenge_id: int, email_otp: str, phone_otp: str = "EMAIL_ONLY") -> dict:
+    db = SessionLocal()
+    try:
+        ch = db.query(OtpChallenge).filter(OtpChallenge.id == int(challenge_id)).first()
+        if not ch:
+            return {"ok": False, "error": "OTP session expired. Please register again."}
+        if ch.email_otp != email_otp.strip():
+            return {"ok": False, "error": "Incorrect Email OTP. Please check the 6-digit code sent to your inbox."}
+
+        ch.verified = True
+        user = db.query(UserAccount).filter(UserAccount.email == ch.email).first()
+        if user:
+            user.full_name = ch.full_name
+            user.password_hash = ch.password_hash
+            user.class10_pct = ch.class10_pct
+            user.class12_pct = ch.class12_pct
+        else:
+            user = UserAccount(
+                full_name=ch.full_name,
+                email=ch.email,
+                password_hash=ch.password_hash,
+                class10_pct=ch.class10_pct,
+                class12_pct=ch.class12_pct
+            )
+            db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        try:
+            db.execute(
+                text("UPDATE ipm_users SET phone = :p, plan_tier = 'FREE', is_verified = TRUE WHERE id = :uid"),
+                {"p": ch.phone, "uid": user.id}
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        db.query(UserSession).filter(UserSession.user_id == user.id).delete()
+        token = secrets.token_urlsafe(32)
+        db.add(UserSession(user_id=user.id, token=token))
+        db.commit()
+        return {
+            "ok": True,
+            "token": token,
+            "user": {
+                "id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "phone": ch.phone,
+                "class10_pct": user.class10_pct,
+                "class12_pct": user.class12_pct,
+                "plan_tier": "FREE",
+                "is_verified": True
+            }
+        }
+    except Exception as exc:
+        db.rollback()
+        return {"ok": False, "error": f"Registration error: {exc}"}
+    finally:
+        db.close()
+
+def initiate_password_reset_otp(email: str) -> dict:
+    db = SessionLocal()
+    try:
+        clean_email = email.strip().lower()
+        user = db.query(UserAccount).filter(UserAccount.email == clean_email).first()
+        if not user:
+            return {"ok": False, "error": "No account found with this email."}
+        e_otp = f"{secrets.randbelow(900000) + 100000}"
+        ch = OtpChallenge(
+            email=clean_email,
+            phone="Registered",
+            full_name=user.full_name,
+            email_otp=e_otp,
+            phone_otp="EMAIL_ONLY"
+        )
+        db.add(ch)
+        db.commit()
+        db.refresh(ch)
+        sent, provider_info = _dispatch_otp_email_https(clean_email, user.full_name, e_otp, "Password Reset")
+        if not sent:
+            return {"ok": False, "error": f"Recovery email failed ({provider_info})"}
+        return {"ok": True, "challenge_id": ch.id, "email": clean_email}
+    finally:
+        db.close()
