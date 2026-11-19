@@ -105,73 +105,6 @@ window.switchDashboardView = function (view) {
   });
 };
 
-window.handleDashboardLogin = async function () {
-  const email = document.getElementById("login-email").value.trim();
-  const password = document.getElementById("login-pass").value;
-  const msg = document.getElementById("dash-msg");
-  msg.textContent = "";
-  const r = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
-  });
-  const data = await r.json();
-  if (!data.ok) { msg.textContent = data.error || "Invalid email or password."; return; }
-  localStorage.setItem("ipm_auth_token", data.token);
-  const me = await (await fetch("/api/auth/me?token=" + encodeURIComponent(data.token))).json();
-  window.IPM_USER = me.ok ? me.user : data.user;
-  localStorage.setItem("ipm_user_profile", JSON.stringify(window.IPM_USER));
-  window.renderHeaderAccountBar();
-  window.renderActiveTab();
-};
-
-window.handleRegStep1 = async function () {
-  const msg = document.getElementById("dash-msg");
-  msg.textContent = "";
-  const payload = {
-    full_name: document.getElementById("reg-name").value.trim(),
-    class10_pct: Number(document.getElementById("reg-c10").value || 92),
-    class12_pct: Number(document.getElementById("reg-c12").value || 90),
-    phone: document.getElementById("reg-phone").value.trim(),
-    email: document.getElementById("reg-email").value.trim(),
-    password: document.getElementById("reg-pass").value
-  };
-  const r = await fetch("/api/auth/register-otp/init", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await r.json();
-  if (!data.ok) { msg.textContent = data.error || "Registration error."; return; }
-  window.IPM_OTP_CHALLENGE_ID = data.challenge_id;
-  document.getElementById("reg-step1").classList.add("hidden");
-  document.getElementById("reg-step2").classList.remove("hidden");
-  document.getElementById("reg-otp-banner").innerHTML =
-    `<strong>2-Step Security Codes Sent:</strong> Check <u>${data.email}</u> & <u>${data.phone}</u>.<br>` +
-    `<span class="text-amber-300">Sandbox Test OTPs &rarr; Email: <strong>${data.demo_email_otp}</strong> | Phone: <strong>${data.demo_phone_otp}</strong></span>`;
-};
-
-window.handleRegStep2Verify = async function () {
-  const msg = document.getElementById("dash-msg");
-  msg.textContent = "";
-  const r = await fetch("/api/auth/register-otp/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      challenge_id: window.IPM_OTP_CHALLENGE_ID,
-      email_otp: document.getElementById("reg-email-otp").value.trim(),
-      phone_otp: document.getElementById("reg-phone-otp").value.trim()
-    })
-  });
-  const data = await r.json();
-  if (!data.ok) { msg.textContent = data.error || "Invalid OTP codes."; return; }
-  localStorage.setItem("ipm_auth_token", data.token);
-  window.IPM_USER = data.user;
-  localStorage.setItem("ipm_user_profile", JSON.stringify(data.user));
-  window.renderHeaderAccountBar();
-  window.renderActiveTab();
-};
-
 window.handleForgotStep1 = async function () {
   const msg = document.getElementById("dash-msg");
   msg.textContent = "";
@@ -208,13 +141,6 @@ window.handleForgotStep2 = async function () {
   document.getElementById("login-email").value = data.email;
   msg.className = "text-xs text-emerald-300 font-semibold";
   msg.textContent = "Password updated in PostgreSQL! Log in with your new password.";
-};
-
-window.logoutStudent = function () {
-  localStorage.removeItem("ipm_auth_token");
-  localStorage.removeItem("ipm_user_profile");
-  window.IPM_USER = null;
-  window.syncLoginGateVisibility();
 };
 
 window.openPaymentModal = function (reasonText) {
@@ -493,115 +419,6 @@ window.triggerResendOtp = async function (purpose) {
   } catch (e) {
     msg.className = "text-xs text-rose-500 font-semibold";
     msg.textContent = "Resend network error: " + (e.message || e);
-  }
-};
-
-window.handleRegStep1 = async function () {
-  const msg = document.getElementById("dash-msg");
-  msg.className = "text-xs text-indigo-600 font-semibold";
-  msg.textContent = "Checking account & sending 6-digit verification code...";
-  try {
-    const emailVal = document.getElementById("reg-email").value.trim();
-    const payload = {
-      full_name: document.getElementById("reg-name").value.trim(),
-      class10_pct: Number((document.getElementById("reg-c10") || {}).value || 92),
-      class12_pct: Number((document.getElementById("reg-c12") || {}).value || 90),
-      phone: document.getElementById("reg-phone").value.trim(),
-      email: emailVal,
-      password: document.getElementById("reg-pass").value
-    };
-    const r = await fetch("/api/auth/register-otp/init", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const raw = await r.text();
-    let data = {};
-    try { data = JSON.parse(raw); } catch (e) {
-      msg.className = "text-xs text-rose-500 font-semibold";
-      msg.textContent = `Server error (${r.status}): ${raw.slice(0, 140)}`;
-      return;
-    }
-    if (!r.ok || !data.ok) {
-      if (data.already_registered && typeof window.switchDashboardView === "function") {
-        window.switchDashboardView("login");
-        const loginEmailEl = document.getElementById("login-email");
-        if (loginEmailEl) loginEmailEl.value = data.email || emailVal;
-      }
-      msg.className = "text-xs text-amber-500 font-semibold";
-      msg.textContent = data.error || data.detail || `Registration error (${r.status})`;
-      return;
-    }
-    msg.textContent = "";
-    window.IPM_OTP_CHALLENGE_ID = data.challenge_id;
-    window._RESEND_COOLDOWN_UNTIL = Date.now() + 30000;
-    document.getElementById("reg-step1").classList.add("hidden");
-    document.getElementById("reg-step2").classList.remove("hidden");
-
-    const phoneOtpEl = document.getElementById("reg-phone-otp");
-    if (phoneOtpEl) {
-      phoneOtpEl.value = "EMAIL_ONLY";
-      const colWrapper = phoneOtpEl.closest("div");
-      if (colWrapper) {
-        colWrapper.classList.add("hidden");
-        if (colWrapper.parentElement) {
-          colWrapper.parentElement.classList.remove("grid-cols-2", "sm:grid-cols-2", "md:grid-cols-2");
-          colWrapper.parentElement.classList.add("grid-cols-1");
-        }
-      }
-    }
-
-    const verifyBtn = document.querySelector("#reg-step2 button[onclick*='handleRegStep2Verify']");
-    if (verifyBtn) {
-      verifyBtn.innerHTML = "Step 2: Verify Email OTP &amp; Enter Free Demo &rarr;";
-    }
-
-    document.getElementById("reg-otp-banner").innerHTML =
-      `<div class="flex items-center justify-between gap-2 flex-wrap">` +
-      `<span><strong>Email OTP Sent (Ref #${data.ref_id || data.challenge_id}):</strong> Code delivered to <u>${data.email}</u>.</span>` +
-      `<button type="button" onclick="window.triggerResendOtp('Account Registration')" class="px-2.5 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-500">Resend Email OTP</button>` +
-      `</div>` +
-      `<div class="text-slate-600 text-[11px] mt-1">Valid for <strong>10 minutes</strong> (resending within 10 min sends the same code). Single-device lock active.</div>`;
-  } catch (err) {
-    msg.className = "text-xs text-rose-500 font-semibold";
-    msg.textContent = "Network error: " + (err && err.message ? err.message : err);
-  }
-};
-
-window.handleRegStep2Verify = async function () {
-  const emailOtp = (document.getElementById("reg-email-otp")?.value || "").trim();
-  const msg = document.getElementById("dash-msg");
-  if (!emailOtp || emailOtp.length !== 6) {
-    msg.className = "text-xs text-rose-500 font-semibold";
-    msg.textContent = "Please enter the 6-digit Email OTP sent to your inbox.";
-    return;
-  }
-  msg.className = "text-xs text-indigo-600 font-semibold";
-  msg.textContent = "Verifying Email OTP & activating workspace...";
-  try {
-    const r = await fetch("/api/auth/register-otp/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        challenge_id: window.IPM_OTP_CHALLENGE_ID,
-        email_otp: emailOtp,
-        phone_otp: "EMAIL_ONLY"
-      })
-    });
-    const data = await r.json();
-    if (!r.ok || !data.ok) {
-      msg.className = "text-xs text-rose-500 font-semibold";
-      msg.textContent = data.error || data.detail || "Invalid Email OTP.";
-      return;
-    }
-    localStorage.setItem("ipm_auth_token", data.token);
-    window.IPM_USER = data.user;
-    localStorage.setItem("ipm_user_profile", JSON.stringify(data.user));
-    localStorage.setItem("ipm_user", JSON.stringify(data.user));
-    window.location.replace(window.location.pathname);
-  } catch (err) {
-    msg.className = "text-xs text-rose-500 font-semibold";
-    msg.textContent = "Verification network error: " + (err && err.message ? err.message : err);
   }
 };
 

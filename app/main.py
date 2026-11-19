@@ -45,7 +45,6 @@ if DATA_DIR.exists():
 if JS_DIR.exists():
     app.mount("/js", StaticFiles(directory=JS_DIR), name="js")
 
-
 def _call_gemini(system_instruction: str, user_prompt: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
@@ -65,7 +64,6 @@ def _call_gemini(system_instruction: str, user_prompt: str) -> str:
         return response.text or "No response generated."
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Gemini evaluation error: {str(exc)}")
-
 
 class EvaluationRequest(BaseModel):
     track: str
@@ -144,7 +142,6 @@ def serve_home():
         return {"status": "ok", "message": "GOALisB IIM UG & IPM Backend Active. Add frontend/index.html next."}
     return FileResponse(index_file)
 
-
 class EvaluationRequest(BaseModel):
     track: str
     prompt: str
@@ -214,20 +211,6 @@ class CreateVoucherReq(BaseModel):
     label: str = "Beta Tester Pass"
     valid_days: int = 14
     max_uses: int = 50
-
-@app.get("/api/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "engine": "GOALisB IIM UG & IPM Master Engine",
-        "campuses_covered": [
-            "IIM Indore", "IIM Rohtak", "IIM Ranchi", "IIM Bodh Gaya",
-            "IIM Jammu", "IIM Bangalore", "IIM Mumbai", "IIM Lucknow"
-        ],
-        "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
-        "database_configured": bool(os.getenv("DATABASE_URL")),
-    }
-
 
 class EvaluationRequest(BaseModel):
     track: str
@@ -313,7 +296,6 @@ def evaluate_response(req: EvaluationRequest):
     feedback = _call_gemini(rubric, user_text)
     return {"track": req.track, "feedback": feedback}
 
-
 class EvaluationRequest(BaseModel):
     track: str
     prompt: str
@@ -395,7 +377,6 @@ def solve_doubt(req: DoubtRequest):
     user_text = f"Track: {req.track}\nTopic: {req.topic}\nQuestion: {req.question}\nStudent Attempt: {req.student_attempt}"
     solution = _call_gemini(system_prompt, user_text)
     return {"topic": req.topic, "solution": solution}
-
 
 class EvaluationRequest(BaseModel):
     track: str
@@ -675,7 +656,6 @@ class CreateVoucherReq(BaseModel):
 @app.post("/api/current-affairs/refresh")
 def trigger_live_ca_refresh():
     return refresh_live_current_affairs(force=True)
-
 
 from pydantic import BaseModel
 from typing import List, Optional
@@ -1161,7 +1141,6 @@ def api_submit_mock(req: MockSubmitReq):
     finally:
         db.close()
 
-
 class EvaluationRequest(BaseModel):
     track: str
     prompt: str
@@ -1486,7 +1465,6 @@ class CreateVoucherReq(BaseModel):
 def api_upgrade_pro(req: UpgradeProReq):
     return upgrade_user_to_pro(req.token, req.payment_method, req.amount_inr)
 
-
 from app.db_engine import initiate_password_reset_otp, complete_password_reset
 
 class EvaluationRequest(BaseModel):
@@ -1636,7 +1614,6 @@ class CreateVoucherReq(BaseModel):
 @app.post("/api/auth/forgot-password/confirm")
 def api_forgot_confirm(req: ForgotConfirmReq):
     return complete_password_reset(req.challenge_id, req.reset_otp, req.new_password)
-
 
 from app.db_engine import redeem_beta_voucher, create_beta_voucher, BetaVoucher
 
@@ -1866,7 +1843,6 @@ def api_list_vouchers():
         return {"vouchers": [{"code": r.code, "label": r.label, "valid_days": r.valid_days, "used": r.used_count, "max_uses": r.max_uses, "active": r.is_active} for r in rows]}
     finally:
         db.close()
-
 
 from app.db_engine import get_pyq_questions_from_db
 class EvaluationRequest(BaseModel):
