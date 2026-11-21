@@ -622,7 +622,7 @@
 
     const diag = computeStrengthAndDeficiency(secStats);
 
-    saveMockAttemptToLedger({
+    const newEntry = {
       serialId: serialId,
       isPractice: isPractice,
       modeCode: window.PG_MOCK.modeCode || defaultPrefix,
@@ -639,7 +639,13 @@
       strengths: diag.strengths,
       deficiencies: diag.deficiencies,
       secSummary: diag.secSummary
-    });
+    };
+    saveMockAttemptToLedger(newEntry);
+    if (window.IPM_T7_STORE) {
+      window.IPM_T7_STORE.syncedRecord = newEntry;
+      window.IPM_T7_STORE.toast = `Auto-synced latest mock ${newEntry.serialId} (${newEntry.score}/${newEntry.maxScore} • ${newEntry.accuracyPct}% Acc).`;
+      persistT7Store();
+    }
 
     window.renderActiveTab();
   };
@@ -1323,15 +1329,15 @@
       return;
     }
     const campusMatches = hist.filter(h => h.campusKey === spec.key);
-    if (!campusMatches.length) {
-      window.IPM_T7_STORE.syncedRecord = null;
-      window.IPM_T7_STORE.toast = `No ${spec.shortLabel} (${spec.code}) mock executed yet — run a ${spec.shortLabel} mock in Tab 4/5 or pick another Serial ID from the dropdown.`;
-      persistT7Store();
-      window.renderActiveTab();
-      return;
-    }
     const scoredCampus = campusMatches.filter(h => Number(h.score || 0) > 0);
-    const raw = scoredCampus.length ? scoredCampus[scoredCampus.length - 1] : campusMatches[campusMatches.length - 1];
+    const scoredAny = hist.filter(h => Number(h.score || 0) > 0);
+    const raw = scoredCampus.length
+      ? scoredCampus[scoredCampus.length - 1]
+      : campusMatches.length
+        ? campusMatches[campusMatches.length - 1]
+        : scoredAny.length
+          ? scoredAny[scoredAny.length - 1]
+          : hist[hist.length - 1];
 
     const chosen = normalizeMockForSync(raw);
     window.IPM_T7_STORE.syncedRecord = chosen;
@@ -1417,7 +1423,7 @@
 
     let primaryPreview = synced ? `${actIndTotal} / 360` : `${draftIndTotal} / 360`;
     let primarySub = synced ? `Actual Mock Projection (${synced.serialId}) • Target: ${indTotal}/360` : `Target Simulation • ATS ${indAts}/65`;
-    let tierLabel = effIndTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : effIndTotal >= 175 ? "Strong PI Call Zone" : `Below Cutoff (Need +${180 - effIndTotal} Marks)`;
+    let tierLabel = !synced ? "Awaiting Tab 4 / Tab 5 Mock" : effIndTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : effIndTotal >= 175 ? "Strong PI Call Zone" : `Below Cutoff (Need +${180 - effIndTotal} Marks)`;
 
     if (spec.key === "ROHTAK") {
       primaryPreview = synced ? `${actRohtak} / 480` : `${d.rohtak} / 480`;
@@ -1601,7 +1607,7 @@
               </div>
               <div class="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-700/40">
                 <div class="text-[10px] font-extrabold uppercase text-emerald-300">${synced ? "ACTUAL MOCK SHORTLIST READINESS" : "TARGET SIMULATION READINESS"}</div>
-                <div class="text-xl font-extrabold text-emerald-400 mt-1">${readyCount} / 10 Tracks</div>
+                <div class="text-xl font-extrabold ${synced ? "text-emerald-400" : "text-slate-300"} mt-1">${synced ? readyCount : 0} / 10 Tracks</div>
                 <div class="text-[11px] text-emerald-200 mt-0.5">9 IIMs + CUET-UG BMS</div>
               </div>
               <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
@@ -1689,8 +1695,12 @@
                         <td class="py-2 px-2 text-slate-400">${c.note}</td>
                         <td class="py-2 pl-2 text-right whitespace-nowrap">
                           <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap ${
-                            c.ok ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
-                          }">${c.ok ? "CALL READY" : "GAP: -" + c.gap}</span>
+                            !synced
+                              ? "bg-slate-800 text-slate-300"
+                              : c.ok
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : "bg-amber-500/20 text-amber-300"
+                          }">${!synced ? "PENDING MOCK" : c.ok ? "CALL READY" : "GAP: -" + c.gap}</span>
                         </td>
                       </tr>
                     `;
