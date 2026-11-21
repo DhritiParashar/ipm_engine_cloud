@@ -227,6 +227,27 @@
         { title: "VARC & Editorial Comprehension", section: "VARC", suffix: "VA", qCount: 15, mins: 20, badge: "IIML VERBAL", desc: "Editorial RC, Critical Reasoning & Vocabulary precision." },
         { title: "IIM Lucknow UG Composite Sprint", section: "", suffix: "UG", qCount: 18, mins: 27, badge: "IIML TECH-MGMT", desc: "Unified Quant + Analytics + VARC drill for IIM Lucknow UG." }
       ]
+    },
+    {
+      key: "CUET",
+      code: "IPM-CUET",
+      shortLabel: "CUET-UG",
+      subLabel: "GAT / BMS / Econ",
+      fullLabel: "CUET-UG (NTA GAT, English & Applied Math)",
+      campusName: "CUET-UG (SSCBS BMS/BBA-FIA & IIM UG)",
+      apiExam: "CUET",
+      pyqExamFilter: "CUET-UG",
+      qCount: 30,
+      mins: 35,
+      pattern: "NTA CBT (GAT 50 Qs + English 40 Qs + Applied Math 40 Qs)",
+      marking: "NTA Standard +5/-1 (Normalized +4/-1 Scale in Suite)",
+      note: "Essential parallel UG entrance for SSCBS (BMS/BBA-FIA), SRCC, and IIM UG/IPM backup tracks (~650+/750 target).",
+      practiceSections: [
+        { title: "CUET General Aptitude Test (GAT)", section: "DILR", suffix: "GAT", qCount: 15, mins: 18, badge: "NTA CUET GAT", desc: "Quantitative Reasoning, Data Interpretation, Logic & Analytical speed drill." },
+        { title: "CUET English Language & RC", section: "VARC", suffix: "ENG", qCount: 15, mins: 15, badge: "NTA CUET ENGLISH", desc: "High-speed Reading Comprehension, Idioms, Synonyms & Verbal usage." },
+        { title: "CUET Applied & Core Mathematics", section: "QUANT_MCQ", suffix: "MATH", qCount: 15, mins: 20, badge: "APPLIED / CORE MATH", desc: "Matrices, Calculus, Probability, Linear Programming & Financial Math." },
+        { title: "SSCBS / Top UG 99+%ile Composite Sprint", section: "", suffix: "UG", qCount: 20, mins: 24, badge: "CUET-UG COMPOSITE", desc: "Mixed GAT + English + Applied Math speed drill for top-college cutoffs." }
+      ]
     }
   ];
 
@@ -244,7 +265,8 @@
     BANGALORE: "IIMB_UG",
     MUMBAI: "IIMM_IIML_UG",
     KOZHIKODE: "IIMM_IIML_UG",
-    LUCKNOW: "IIMM_IIML_UG"
+    LUCKNOW: "IIMM_IIML_UG",
+    CUET: "ALL_IIMS"
   };
 
   window.selectIndividualIimMode = function (key) {
@@ -1072,6 +1094,7 @@
     jipmat: 325,
     iimbUg: 245,
     iimkBms: 255,
+    cuetScore: 660,
     jeePct: 96.8,
     syncedRecord: null
   };
@@ -1089,8 +1112,12 @@
     } else if (cKey === "BANGALORE") {
       window.IPM_T7_STATE.iimbUg = Math.round(300 * ratio);
         window.IPM_T7_STATE.iimkBms = Math.round(400 * ratio);
+        window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
     } else if (cKey === "KOZHIKODE") {
       window.IPM_T7_STATE.iimkBms = Math.round(400 * ratio);
+        window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
+    } else if (cKey === "CUET") {
+      window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
     } else if (cKey === "MUMBAI" || cKey === "LUCKNOW") {
       window.IPM_T7_STATE.jeePct = +(88 + 11.5 * ratio).toFixed(1);
     } else {
@@ -1102,6 +1129,7 @@
         window.IPM_T7_STATE.jipmat = Math.round(400 * ratio);
         window.IPM_T7_STATE.iimbUg = Math.round(300 * ratio);
         window.IPM_T7_STATE.iimkBms = Math.round(400 * ratio);
+        window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
       }
     }
   }
@@ -1204,6 +1232,7 @@
             <div><div class="flex justify-between font-bold mb-1"><span>JIPMAT Bodh Gaya &amp; Jammu (/400)</span><span class="text-emerald-300">${s.jipmat} / 400</span></div><input type="range" min="150" max="400" step="5" value="${s.jipmat}" oninput="window.updateIpmT7Slider('jipmat', this.value)" class="w-full cursor-pointer"></div>
             <div><div class="flex justify-between font-bold mb-1"><span>IIM Bangalore UG Test (/300)</span><span class="text-purple-300">${s.iimbUg} / 300</span></div><input type="range" min="100" max="300" step="5" value="${s.iimbUg}" oninput="window.updateIpmT7Slider('iimbUg', this.value)" class="w-full cursor-pointer"></div>
             <div><div class="flex justify-between font-bold mb-1"><span>IIM Kozhikode BMS Test (/400)</span><span class="text-teal-300">${s.iimkBms} / 400</span></div><input type="range" min="120" max="400" step="5" value="${s.iimkBms}" oninput="window.updateIpmT7Slider('iimkBms', this.value)" class="w-full cursor-pointer"></div>
+            <div><div class="flex justify-between font-bold mb-1"><span>CUET-UG Composite (GAT+Eng+Math /750)</span><span class="text-orange-300">${s.cuetScore} / 750</span></div><input type="range" min="300" max="750" step="5" value="${s.cuetScore}" oninput="window.updateIpmT7Slider('cuetScore', this.value)" class="w-full cursor-pointer"></div>
             <div><div class="flex justify-between font-bold mb-1"><span>JEE Main %ile (IIM Mumbai BS)</span><span class="text-sky-300">${s.jeePct}%ile</span></div><input type="range" min="80" max="100" step="0.2" value="${s.jeePct}" oninput="window.updateIpmT7Slider('jeePct', this.value)" class="w-full cursor-pointer"></div>
             <div class="grid grid-cols-2 gap-3 pt-1">
               <div><label class="text-slate-400 font-bold">Class 10 %</label><input type="number" step="0.5" value="${s.c10}" onchange="window.updateIpmT7Slider('c10', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white"></div>
