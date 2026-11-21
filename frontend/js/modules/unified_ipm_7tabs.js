@@ -693,6 +693,67 @@
     window.renderActiveTab();
   };
 
+  function buildIpmOfficialLedgerHtml(isPracticeLedger) {
+    const spec = window.getActiveIpmModeSpec();
+    const rows = getMockHistory().filter(h => Boolean(h.isPractice) === Boolean(isPracticeLedger)).slice().reverse();
+    const title = isPracticeLedger
+      ? `Practice Mock & Sectional Drill Log (${rows.length} Logged)`
+      : `Official Proctored Mock Ledger (${rows.length} Logged)`;
+    return `
+      <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-extrabold text-white">${title}</h3>
+            <p class="text-[11px] text-slate-400">Click <strong>Sync Tab 7 &rarr;</strong> on any logged Serial ID to evaluate that specific mock in Tab 7, or download its PDF/HTML Scorecard.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            ${rows.length ? `<button type="button" onclick="window.clearIpmMockHistory()" class="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-200 text-xs font-bold cursor-pointer">Clear Test Logs</button>` : ""}
+            <button type="button" onclick="window.switchTab('tab7')" class="px-3 py-1.5 rounded-xl bg-indigo-600/25 border border-indigo-500/40 text-indigo-300 text-xs font-bold cursor-pointer">
+              Open Tab 7 Target Forecaster &rarr;
+            </button>
+          </div>
+        </div>
+        ${rows.length ? `
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                  <th class="py-2 pr-2">Serial Mock ID</th>
+                  <th class="py-2 px-2">Date &amp; Time</th>
+                  <th class="py-2 px-2">Simulation Blueprint</th>
+                  <th class="py-2 px-2">Score</th>
+                  <th class="py-2 px-2">Accuracy</th>
+                  <th class="py-2 pl-2 text-right">Evaluate &amp; Export</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/70">
+                ${rows.map(h => `
+                  <tr>
+                    <td class="py-2.5 pr-2 font-mono font-bold text-indigo-400 whitespace-nowrap">${h.serialId}</td>
+                    <td class="py-2.5 px-2 text-slate-400 whitespace-nowrap">${h.date || "Today"}</td>
+                    <td class="py-2.5 px-2 text-white font-semibold">${h.title}</td>
+                    <td class="py-2.5 px-2 font-bold text-emerald-400 whitespace-nowrap">${h.score} / ${h.maxScore}</td>
+                    <td class="py-2.5 px-2 font-semibold text-slate-200 whitespace-nowrap">${h.accuracyPct || 0}% (${h.correct || 0}C/${h.wrong || 0}W)</td>
+                    <td class="py-2.5 pl-2 text-right whitespace-nowrap space-x-1.5">
+                      <button type="button" onclick="window.downloadIpmMockScorecard('${h.serialId}')"
+                        class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold cursor-pointer">
+                        &#11015; Scorecard
+                      </button>
+                      <button type="button" onclick="window.syncSpecificIpmMockToTab7('${h.serialId}')"
+                        class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold shadow cursor-pointer">
+                        Sync Tab 7 &rarr;
+                      </button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `<div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">No mocks logged yet. Complete a mock above to generate <code class="text-amber-300">${generateModeSerialId(spec.code)}</code>.</div>`}
+      </div>
+    `;
+  }
+
   function renderActiveOrSubmittedMockRunner(el, returnTabLabel) {
     const spec = window.getActiveIpmModeSpec();
     const qs = window.PG_MOCK.questions || [];
@@ -741,6 +802,9 @@
               </div>
             </div>
           </div>
+
+          <!-- ALWAYS-VISIBLE OFFICIAL MOCK LEDGER WITH PER-ROW SYNC BUTTONS -->
+          ${buildIpmOfficialLedgerHtml(Boolean(window.PG_MOCK.isPractice))}
 
           <!-- FULL QUESTION-BY-QUESTION ANSWER KEY & STEP-BY-STEP SOLUTIONS -->
           <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3">
@@ -1328,26 +1392,15 @@
       window.renderActiveTab();
       return;
     }
-    const campusMatches = hist.filter(h => h.campusKey === spec.key);
-    const scoredCampus = campusMatches.filter(h => Number(h.score || 0) > 0);
-    const scoredAny = hist.filter(h => Number(h.score || 0) > 0);
-    const raw = scoredCampus.length
-      ? scoredCampus[scoredCampus.length - 1]
-      : campusMatches.length
-        ? campusMatches[campusMatches.length - 1]
-        : scoredAny.length
-          ? scoredAny[scoredAny.length - 1]
-          : hist[hist.length - 1];
+    const raw = hist[hist.length - 1];
 
     const chosen = normalizeMockForSync(raw);
     window.IPM_T7_STORE.syncedRecord = chosen;
 
     if (Number(chosen.score || 0) <= 0) {
       window.IPM_T7_STORE.toast = `Synced ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • 0% Acc). Note: 0-mark mock has no positive score to project — attempt & save answers in Tab 4/5 for accurate section calibration.`;
-    } else if (campusMatches.length) {
-      window.IPM_T7_STORE.toast = `Synced ${spec.shortLabel} mock ${chosen.serialId}: ${chosen.score}/${chosen.maxScore} (${chosen.accuracyPct || 0}% Acc).`;
     } else {
-      window.IPM_T7_STORE.toast = `No ${spec.shortLabel} mock logged yet — synced ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc) as baseline.`;
+      window.IPM_T7_STORE.toast = `Synced latest logged mock ${chosen.serialId}: ${chosen.score}/${chosen.maxScore} (${chosen.accuracyPct || 0}% Acc).`;
     }
     persistT7Store();
     window.renderActiveTab();
