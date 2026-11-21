@@ -1156,24 +1156,28 @@
     }
   };
 
-  // TAB 7: Individual 9-IIM + CUET-UG Call & Target Forecaster (NEET/CAT Parity v32)
-  window.IPM_T7_MODE = window.IPM_T7_MODE || "TARGET"; // "TARGET" | "MOCK"
-  window.IPM_T7_TARGETS = window.IPM_T7_TARGETS || {
-    c10: 92,
-    c12: 90,
-    hasMath: true,
-    indSa: 32,
-    indMcq: 56,
-    indVa: 132,
-    rohtak: 405,
-    jipmat: 330,
-    iimbUg: 250,
-    iimkBms: 265,
-    cuetScore: 675,
-    jeePct: 97.2,
-    lockedAt: "Default 99%ile Target",
-    syncedRecord: null
+  // TAB 7: Individual 9-IIM + CUET-UG Call & Target Forecaster (Draft vs Locked Target + Sync Selector v35)
+  const DEFAULT_T7_VALUES = {
+    c10: 92, c12: 90, hasMath: true,
+    indSa: 32, indMcq: 56, indVa: 132,
+    rohtak: 405, jipmat: 330, iimbUg: 250, iimkBms: 265, cuetScore: 675, jeePct: 97.2
   };
+
+  function loadSavedT7() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("ipm_t7_locked_targets_v2") || "null");
+      if (saved && saved.locked) return saved;
+    } catch (_) {}
+    return {
+      draft: { ...DEFAULT_T7_VALUES },
+      locked: { ...DEFAULT_T7_VALUES },
+      lockedAt: "Default 99%ile Benchmark",
+      syncedRecord: null,
+      toast: ""
+    };
+  }
+
+  window.IPM_T7_STORE = window.IPM_T7_STORE || loadSavedT7();
 
   const MODE_SLIDER_GROUPS = {
     ALL: [
@@ -1221,21 +1225,33 @@
     ]
   };
 
+  function persistT7Store() {
+    localStorage.setItem("ipm_t7_locked_targets_v2", JSON.stringify({
+      draft: window.IPM_T7_STORE.draft,
+      locked: window.IPM_T7_STORE.locked,
+      lockedAt: window.IPM_T7_STORE.lockedAt,
+      syncedRecord: window.IPM_T7_STORE.syncedRecord
+    }));
+  }
+
   window.lockIpmDesiredTarget = function () {
-    window.IPM_T7_MODE = "TARGET";
-    window.IPM_T7_TARGETS.lockedAt = "Locked " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    localStorage.setItem("ipm_t7_locked_targets_v1", JSON.stringify(window.IPM_T7_TARGETS));
+    const st = window.IPM_T7_STORE;
+    st.locked = { ...st.draft };
+    const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    st.lockedAt = `Target Locked at ${ts}`;
+    st.toast = `Target locked (${st.locked.indSa + st.locked.indMcq + st.locked.indVa}/360 Indore • ${st.locked.rohtak}/480 Rohtak • ${st.locked.cuetScore}/750 CUET). Matrix updated!`;
+    persistT7Store();
     window.renderActiveTab();
   };
 
   window.resetIpmDesiredTarget = function () {
-    window.IPM_T7_MODE = "TARGET";
-    Object.assign(window.IPM_T7_TARGETS, {
-      c10: 92, c12: 90, hasMath: true,
-      indSa: 32, indMcq: 56, indVa: 132,
-      rohtak: 405, jipmat: 330, iimbUg: 250, iimkBms: 265, cuetScore: 675, jeePct: 97.2,
-      lockedAt: "Reset to 99%ile Benchmark"
-    });
+    const st = window.IPM_T7_STORE;
+    st.draft = { ...DEFAULT_T7_VALUES };
+    st.locked = { ...DEFAULT_T7_VALUES };
+    st.syncedRecord = null;
+    st.lockedAt = "Reset to 99%ile Benchmark";
+    st.toast = "All sliders, locked targets, and synced mock comparisons reset to baseline.";
+    persistT7Store();
     window.renderActiveTab();
   };
 
@@ -1243,8 +1259,9 @@
     const hist = getMockHistory();
     const match = hist.find(h => h.serialId === serialId) || hist[hist.length - 1];
     if (match) {
-      window.IPM_T7_TARGETS.syncedRecord = match;
-      window.IPM_T7_MODE = "MOCK";
+      window.IPM_T7_STORE.syncedRecord = match;
+      window.IPM_T7_STORE.toast = `Synced Mock ${match.serialId} (${match.score}/${match.maxScore} • ${match.accuracyPct || 0}% Acc) against your Locked Target.`;
+      persistT7Store();
     }
     if (window.IPM_STATE && window.IPM_STATE.activeTab !== "tab7") {
       window.switchTab("tab7");
@@ -1256,65 +1273,72 @@
   window.syncLatestIpmMockToTab7 = function () {
     const spec = window.getActiveIpmModeSpec();
     const hist = getMockHistory();
-    const match = hist.slice().reverse().find(h => h.campusKey === spec.key) || hist[hist.length - 1];
-    if (match) {
-      window.IPM_T7_TARGETS.syncedRecord = match;
-      window.IPM_T7_MODE = "MOCK";
-    } else {
-      alert(`No ${spec.shortLabel} mock found yet. Complete a mock in Tab 4 or Tab 5 first, or adjust your Desired Self-Target sliders!`);
+    if (!hist.length) {
+      window.IPM_T7_STORE.toast = "No mocks executed yet — complete any mock in Tab 4 or Tab 5 first, then click Sync Mock.";
+      window.renderActiveTab();
+      return;
     }
+    const campusMatches = hist.filter(h => h.campusKey === spec.key);
+    const chosen = campusMatches.length ? campusMatches[campusMatches.length - 1] : hist[hist.length - 1];
+    window.IPM_T7_STORE.syncedRecord = chosen;
+    window.IPM_T7_STORE.toast = campusMatches.length
+      ? `Synced latest ${spec.shortLabel} mock: ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc).`
+      : `No ${spec.shortLabel}-specific mock logged yet — synced latest overall mock ${chosen.serialId} (${chosen.score}/${chosen.maxScore}).`;
+    persistT7Store();
     window.renderActiveTab();
   };
 
   window.updateIpmT7Slider = function (key, val) {
-    window.IPM_T7_TARGETS[key] = key === "hasMath" ? Boolean(val) : parseFloat(val);
+    window.IPM_T7_STORE.draft[key] = key === "hasMath" ? Boolean(val) : parseFloat(val);
     window.renderActiveTab();
   };
 
   window.renderTab7 = function (el) {
     const spec = window.getActiveIpmModeSpec();
-    const t = window.IPM_T7_TARGETS;
+    const st = window.IPM_T7_STORE;
+    const d = st.draft;
+    const t = st.locked;
+    const hasUnsavedChanges = JSON.stringify(d) !== JSON.stringify(t);
     const hist = getMockHistory().slice().reverse();
     const fullMocksCount = hist.filter(h => !h.isPractice).length;
-    const synced = t.syncedRecord;
+    const synced = st.syncedRecord;
 
     const sliders = MODE_SLIDER_GROUPS[spec.key] || MODE_SLIDER_GROUPS.ALL;
+    const draftIndTotal = d.indSa + d.indMcq + d.indVa;
     const indTotal = t.indSa + t.indMcq + t.indVa;
     const indAts = ((t.indSa / 60) * 20 + (t.indMcq / 120) * 20 + (t.indVa / 180) * 25).toFixed(1);
 
-    // Primary KPI summary tailored to the active top campus pill
-    let primaryPreview = `${indTotal} / 360`;
-    let primarySub = `ATS ${indAts}/65 • Acads ${((t.c10 + t.c12) / 2).toFixed(1)}%`;
-    let tierLabel = indTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : indTotal >= 175 ? "Strong PI Call Zone" : "Below Cutoff — Boost Sectional Score";
+    let primaryPreview = `${draftIndTotal} / 360`;
+    let primarySub = `Locked: ${indTotal}/360 • ATS ${indAts}/65`;
+    let tierLabel = draftIndTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : draftIndTotal >= 175 ? "Strong PI Call Zone" : "Below Cutoff — Boost Sectional Score";
 
     if (spec.key === "ROHTAK") {
-      primaryPreview = `${t.rohtak} / 480`;
-      primarySub = `Acad Weight ${(((t.c10 + t.c12) / 200) * 30).toFixed(1)} / 30`;
-      tierLabel = t.rohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - t.rohtak} Marks for PI Call`;
+      primaryPreview = `${d.rohtak} / 480`;
+      primarySub = `Locked: ${t.rohtak}/480 • Acad ${(((d.c10 + d.c12) / 200) * 30).toFixed(1)}/30`;
+      tierLabel = d.rohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - d.rohtak} Marks for PI Call`;
     } else if (spec.key === "BODHGAYA" || spec.key === "JAMMU") {
       const bar = spec.key === "BODHGAYA" ? 315 : 310;
-      primaryPreview = `${t.jipmat} / 400`;
-      primarySub = `NTA JIPMAT • ${spec.key === "BODHGAYA" ? "100% CBT Merit" : "+ Diversity Points"}`;
-      tierLabel = t.jipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - t.jipmat} Marks in JIPMAT`;
+      primaryPreview = `${d.jipmat} / 400`;
+      primarySub = `Locked: ${t.jipmat}/400 • NTA JIPMAT`;
+      tierLabel = d.jipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - d.jipmat} Marks in JIPMAT`;
     } else if (spec.key === "BANGALORE") {
-      primaryPreview = `${t.iimbUg} / 300`;
-      primarySub = `Class 12 Math: ${t.hasMath ? "Verified" : "Missing"}`;
-      tierLabel = t.hasMath && t.iimbUg >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : "Check Class 12 Math / 235+ Target";
+      primaryPreview = `${d.iimbUg} / 300`;
+      primarySub = `Locked: ${t.iimbUg}/300 • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
+      tierLabel = d.hasMath && d.iimbUg >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : "Check Class 12 Math / 235+ Target";
     } else if (spec.key === "MUMBAI") {
-      primaryPreview = `${t.jeePct}%ile`;
-      primarySub = `Class 12 Math: ${t.hasMath ? "Verified" : "Missing"}`;
-      tierLabel = t.hasMath && t.jeePct >= 96.0 ? "IIM Mumbai 4-Yr BS Shortlist Zone" : "Target ≥96.0%ile + Class 12 Math";
+      primaryPreview = `${d.jeePct}%ile`;
+      primarySub = `Locked: ${t.jeePct}%ile • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
+      tierLabel = d.hasMath && d.jeePct >= 96.0 ? "IIM Mumbai 4-Yr BS Shortlist Zone" : "Target ≥96.0%ile + Class 12 Math";
     } else if (spec.key === "KOZHIKODE") {
-      primaryPreview = `${t.iimkBms} / 400`;
-      primarySub = `Acads ${((t.c10 + t.c12) / 2).toFixed(1)}% • 4-Yr BMS Hons`;
-      tierLabel = t.iimkBms >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - t.iimkBms} Marks in IIMK Test`;
+      primaryPreview = `${d.iimkBms} / 400`;
+      primarySub = `Locked: ${t.iimkBms}/400 • 4-Yr BMS Hons`;
+      tierLabel = d.iimkBms >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - d.iimkBms} Marks in IIMK Test`;
     } else if (spec.key === "CUET") {
-      primaryPreview = `${t.cuetScore} / 750`;
-      primarySub = `GAT + English + Applied/Core Math`;
-      tierLabel = t.cuetScore >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - t.cuetScore} Marks for Top-Tier BMS`;
+      primaryPreview = `${d.cuetScore} / 750`;
+      primarySub = `Locked: ${t.cuetScore}/750 • GAT + Eng + Math`;
+      tierLabel = d.cuetScore >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - d.cuetScore} Marks for Top-Tier BMS`;
     }
 
-    // Build Achievement vs Deficiency rows from synced mock OR active mode targets
     const secStats = (synced && synced.secStats) || {};
     const sectionRows = [
       { label: "QA Short Answer (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
@@ -1345,164 +1369,176 @@
     const readyCount = campuses.filter(c => c.ok).length;
 
     el.innerHTML = `
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <!-- LEFT PANEL: NEET/CAT-STYLE SELF-TARGET & SYNC CONTROLS -->
-        <div class="lg:col-span-5 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs shadow-lg">
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <span class="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-extrabold uppercase">
-                MODE: ${window.IPM_T7_MODE === "MOCK" ? "ACTUAL MOCK SYNCED" : "DESIRED SELF-TARGET"}
-              </span>
-              <h2 class="text-lg font-extrabold text-white mt-1.5">Set Desired ${spec.shortLabel} Target</h2>
-              <p class="text-[11px] text-slate-400 mt-0.5">Adjust sliders below, click <strong>Set Target</strong> to lock your goal, or click <strong>Sync Mock</strong> to compare actual Tab 4/5 achievement.</p>
-            </div>
-            <div class="flex flex-col gap-1.5 shrink-0">
-              <button type="button" onclick="window.lockIpmDesiredTarget()"
-                class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold shadow cursor-pointer">
-                &#127919; Set Target
-              </button>
-              <button type="button" onclick="window.resetIpmDesiredTarget()"
-                class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer">
-                Reset Target
-              </button>
-              <button type="button" onclick="window.syncLatestIpmMockToTab7()"
-                class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow cursor-pointer">
-                &#8635; Sync Mock
-              </button>
-            </div>
+      <div class="space-y-4">
+        ${st.toast ? `
+          <div class="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-between gap-2 text-xs text-indigo-200">
+            <div>&#9989; <strong>Status:</strong> ${st.toast}</div>
+            <button type="button" onclick="window.IPM_T7_STORE.toast=''; window.renderActiveTab();" class="text-slate-400 hover:text-white font-bold px-2">&times;</button>
           </div>
+        ` : ""}
 
-          <div class="space-y-3 pt-1 border-t border-slate-800">
-            ${sliders.map(sl => `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <!-- LEFT PANEL: DRAFT SLIDERS + EXPLICIT SET / RESET / SYNC BUTTONS -->
+          <div class="lg:col-span-5 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs shadow-lg">
+            <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <div class="flex justify-between font-bold mb-1">
-                  <span class="text-slate-200">${sl.label}</span>
-                  <span class="text-emerald-400 font-extrabold">${t[sl.key]} <span class="text-slate-400 font-normal">${sl.unit} (Cutoff: ${sl.cutoff})</span></span>
-                </div>
-                <input type="range" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${t[sl.key]}"
-                  oninput="window.updateIpmT7Slider('${sl.key}', this.value)" class="w-full accent-emerald-500 cursor-pointer">
+                <span class="px-2.5 py-0.5 rounded-full ${hasUnsavedChanges ? "bg-amber-500/20 text-amber-300" : "bg-indigo-500/20 text-indigo-300"} text-[10px] font-extrabold uppercase">
+                  ${hasUnsavedChanges ? "UNSAVED DRAFT — CLICK SET TARGET" : "LOCKED TARGET ACTIVE"}
+                </span>
+                <h2 class="text-lg font-extrabold text-white mt-1.5">Set Desired ${spec.shortLabel} Target</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">Move sliders to preview, then click <strong>Set Target</strong> to lock into the matrix, or <strong>Sync Mock</strong> to pull any executed Tab 4/5 mock.</p>
               </div>
-            `).join("")}
-          </div>
+              <div class="flex flex-col gap-1.5 shrink-0">
+                <button type="button" onclick="window.lockIpmDesiredTarget()"
+                  class="px-3.5 py-1.5 rounded-xl ${hasUnsavedChanges ? "bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-300" : "bg-indigo-600 hover:bg-indigo-500 text-white"} text-xs font-extrabold shadow cursor-pointer">
+                  &#127919; Set Target
+                </button>
+                <button type="button" onclick="window.resetIpmDesiredTarget()"
+                  class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer">
+                  &#8634; Reset Target
+                </button>
+                <button type="button" onclick="window.syncLatestIpmMockToTab7()"
+                  class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow cursor-pointer">
+                  &#8635; Sync Mock
+                </button>
+              </div>
+            </div>
 
-          <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
-            <div>
-              <label class="text-slate-400 font-bold">Class 10 Board %</label>
-              <input type="number" step="0.5" value="${t.c10}" onchange="window.updateIpmT7Slider('c10', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white">
+            <div class="space-y-3 pt-1 border-t border-slate-800">
+              ${sliders.map(sl => `
+                <div>
+                  <div class="flex justify-between font-bold mb-1">
+                    <span class="text-slate-200">${sl.label}</span>
+                    <span class="text-emerald-400 font-extrabold">${d[sl.key]} <span class="text-slate-400 font-normal">${sl.unit} (Locked: ${t[sl.key]})</span></span>
+                  </div>
+                  <input type="range" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${d[sl.key]}"
+                    oninput="window.updateIpmT7Slider('${sl.key}', this.value)" class="w-full accent-emerald-500 cursor-pointer">
+                </div>
+              `).join("")}
             </div>
-            <div>
-              <label class="text-slate-400 font-bold">Class 12 Board %</label>
-              <input type="number" step="0.5" value="${t.c12}" onchange="window.updateIpmT7Slider('c12', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white">
-            </div>
-          </div>
 
-          <div class="flex items-center gap-2">
-            <input id="t7-math-chk" type="checkbox" ${t.hasMath ? "checked" : ""} onchange="window.updateIpmT7Slider('hasMath', this.checked)">
-            <label for="t7-math-chk" class="text-slate-300 font-semibold">Studied Mathematics in Class 12 (IIMB B.Sc. / IIMM BS)</label>
-          </div>
-        </div>
-
-        <!-- RIGHT PANEL: 3 KPI CARDS + ACHIEVEMENT VS DEFICIENCY MATRIX + 10-TRACK READINESS -->
-        <div class="lg:col-span-7 space-y-4">
-          <!-- 3-CARD KPI PREVIEW BANNER (MATCHING NEET/CAT) -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
-              <div class="text-[10px] font-extrabold uppercase text-slate-400">TARGET PREVIEW (${spec.code})</div>
-              <div class="text-xl font-extrabold text-white mt-1">${primaryPreview}</div>
-              <div class="text-[11px] text-indigo-300 mt-0.5">${primarySub}</div>
-            </div>
-            <div class="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-700/40">
-              <div class="text-[10px] font-extrabold uppercase text-emerald-300">SHORTLIST READINESS</div>
-              <div class="text-xl font-extrabold text-emerald-400 mt-1">${readyCount} / 10 Tracks</div>
-              <div class="text-[11px] text-emerald-200 mt-0.5">9 IIMs + CUET-UG BMS</div>
-            </div>
-            <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
-              <div class="text-[10px] font-extrabold uppercase text-amber-300">EXPECTED CALL TIER</div>
-              <div class="text-sm font-extrabold text-white mt-1 leading-snug">${tierLabel}</div>
-              <div class="text-[10px] text-slate-400 mt-0.5">${t.lockedAt}</div>
-            </div>
-          </div>
-
-          <!-- ACHIEVEMENT VS. DEFICIENCY REMAINING MATRIX WITH COMPLETION BARS -->
-          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 text-xs">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
               <div>
-                <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ACHIEVEMENT VS. DEFICIENCY REMAINING MATRIX</div>
-                <div class="text-[11px] text-slate-400">
-                  ${synced ? `Synced Mock: <strong class="font-mono text-amber-300">${synced.serialId}</strong> (${synced.score}/${synced.maxScore} • ${synced.accuracyPct}% Acc)` : "Complete a mock in Tab 4/5 & click Sync Mock to populate Actual Achievement"}
-                </div>
+                <label class="text-slate-400 font-bold">Class 10 Board %</label>
+                <input type="number" step="0.5" value="${d.c10}" onchange="window.updateIpmT7Slider('c10', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white">
               </div>
-              <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold text-slate-300">${fullMocksCount} Full Mocks Logged</span>
+              <div>
+                <label class="text-slate-400 font-bold">Class 12 Board %</label>
+                <input type="number" step="0.5" value="${d.c12}" onchange="window.updateIpmT7Slider('c12', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white">
+              </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="flex items-center gap-2">
+              <input id="t7-math-chk" type="checkbox" ${d.hasMath ? "checked" : ""} onchange="window.updateIpmT7Slider('hasMath', this.checked)">
+              <label for="t7-math-chk" class="text-slate-300 font-semibold">Studied Mathematics in Class 12 (IIMB B.Sc. / IIMM BS)</label>
+            </div>
+          </div>
+
+          <!-- RIGHT PANEL: KPI PREVIEW + SERIAL ID SELECTOR + ACHIEVEMENT MATRIX -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
+                <div class="text-[10px] font-extrabold uppercase text-slate-400">DRAFT VS LOCKED (${spec.code})</div>
+                <div class="text-xl font-extrabold text-white mt-1">${primaryPreview}</div>
+                <div class="text-[11px] text-indigo-300 mt-0.5">${primarySub}</div>
+              </div>
+              <div class="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-700/40">
+                <div class="text-[10px] font-extrabold uppercase text-emerald-300">LOCKED SHORTLIST READINESS</div>
+                <div class="text-xl font-extrabold text-emerald-400 mt-1">${readyCount} / 10 Tracks</div>
+                <div class="text-[11px] text-emerald-200 mt-0.5">9 IIMs + CUET-UG BMS</div>
+              </div>
+              <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
+                <div class="text-[10px] font-extrabold uppercase text-amber-300">EXPECTED CALL TIER</div>
+                <div class="text-sm font-extrabold text-white mt-1 leading-snug">${tierLabel}</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">${st.lockedAt}</div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 text-xs">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ACHIEVEMENT VS. DEFICIENCY REMAINING MATRIX</div>
+                  <div class="text-[11px] text-slate-400">
+                    ${synced ? `Synced Mock: <strong class="font-mono text-amber-300">${synced.serialId}</strong> (${synced.score}/${synced.maxScore} • ${synced.accuracyPct}% Acc)` : "Select a Mock Serial ID or click Sync Mock to populate Actual Achievement"}
+                  </div>
+                </div>
+                ${hist.length ? `
+                  <select onchange="if(this.value) window.syncSpecificIpmMockToTab7(this.value)"
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono font-bold text-amber-300">
+                    <option value="">Switch Synced Mock (${hist.length} Logged)...</option>
+                    ${hist.map(h => `<option value="${h.serialId}" ${synced && synced.serialId === h.serialId ? "selected" : ""}>${h.serialId} (${h.score}/${h.maxScore})</option>`).join("")}
+                  </select>
+                ` : `<span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold text-slate-300">${fullMocksCount} Full Mocks Logged</span>`}
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                      <th class="py-2 pr-2">Section / Pillar</th>
+                      <th class="py-2 px-2">Locked Target</th>
+                      <th class="py-2 px-2">Achieved (Mock)</th>
+                      <th class="py-2 px-2">Deficiency / Surplus</th>
+                      <th class="py-2 pl-2">Completion</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/70">
+                    ${sectionRows.map(r => `
+                      <tr>
+                        <td class="py-2.5 pr-2 font-bold text-white">${r.label}</td>
+                        <td class="py-2.5 px-2 font-mono text-indigo-300">${r.target} / ${r.max}</td>
+                        <td class="py-2.5 px-2 font-mono font-bold text-white">${r.achieved !== null ? `${r.achieved} / ${r.max}` : "—"}</td>
+                        <td class="py-2.5 px-2 font-bold ${r.diff === null ? "text-slate-400" : r.diff >= 0 ? "text-emerald-400" : "text-rose-400"}">
+                          ${r.diff === null ? "Pending Mock" : r.diff >= 0 ? `+${r.diff} Surplus` : `${r.diff} Deficit`}
+                        </td>
+                        <td class="py-2.5 pl-2">
+                          <div class="flex items-center gap-2">
+                            <div class="w-20 h-2 rounded-full bg-slate-800 overflow-hidden">
+                              <div class="h-full bg-emerald-500" style="width:${r.pct}%"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-300">${r.pct}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 overflow-x-auto text-xs">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">9-IIM + CUET-UG Campus Shortlist Matrix (Based on Locked Target)</div>
+                <span class="text-[11px] text-slate-400">Highlighted: ${spec.shortLabel}</span>
+              </div>
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
-                    <th class="py-2 pr-2">Section / Pillar</th>
+                    <th class="py-2 pr-2">Campus / Program</th>
                     <th class="py-2 px-2">Locked Target</th>
-                    <th class="py-2 px-2">Achieved (Mock)</th>
-                    <th class="py-2 px-2">Deficiency / Surplus</th>
-                    <th class="py-2 pl-2">Completion</th>
+                    <th class="py-2 px-2">Benchmark</th>
+                    <th class="py-2 pl-2 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/70">
-                  ${sectionRows.map(r => `
-                    <tr>
-                      <td class="py-2.5 pr-2 font-bold text-white">${r.label}</td>
-                      <td class="py-2.5 px-2 font-mono text-indigo-300">${r.target} / ${r.max}</td>
-                      <td class="py-2.5 px-2 font-mono font-bold text-white">${r.achieved !== null ? `${r.achieved} / ${r.max}` : "—"}</td>
-                      <td class="py-2.5 px-2 font-bold ${r.diff === null ? "text-slate-400" : r.diff >= 0 ? "text-emerald-400" : "text-rose-400"}">
-                        ${r.diff === null ? "Pending Mock" : r.diff >= 0 ? `+${r.diff} Surplus` : `${r.diff} Deficit`}
-                      </td>
-                      <td class="py-2.5 pl-2">
-                        <div class="flex items-center gap-2">
-                          <div class="w-20 h-2 rounded-full bg-slate-800 overflow-hidden">
-                            <div class="h-full bg-emerald-500" style="width:${r.pct}%"></div>
-                          </div>
-                          <span class="text-[10px] font-bold text-slate-300">${r.pct}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  `).join("")}
+                  ${campuses.map(c => {
+                    const isFocused = c.key === spec.key;
+                    return `
+                      <tr class="${isFocused ? "bg-indigo-950/40" : ""}">
+                        <td class="py-2 pr-2 font-bold text-white whitespace-nowrap">${c.name}</td>
+                        <td class="py-2 px-2 font-mono text-indigo-300 whitespace-nowrap">${c.score}</td>
+                        <td class="py-2 px-2 text-slate-400">${c.note}</td>
+                        <td class="py-2 pl-2 text-right whitespace-nowrap">
+                          <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap ${
+                            c.ok ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                          }">${c.ok ? "CALL READY" : "GAP: -" + c.gap}</span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join("")}
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <!-- ALL 9 IIMs + CUET-UG CAMPUS CALL MATRIX (SINGLE-LINE BADGES) -->
-          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 overflow-x-auto text-xs">
-            <div class="flex items-center justify-between">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">9-IIM + CUET-UG Campus Shortlist Matrix</div>
-              <span class="text-[11px] text-slate-400">Highlighted: ${spec.shortLabel}</span>
-            </div>
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
-                  <th class="py-2 pr-2">Campus / Program</th>
-                  <th class="py-2 px-2">Projected</th>
-                  <th class="py-2 px-2">Benchmark</th>
-                  <th class="py-2 pl-2 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/70">
-                ${campuses.map(c => {
-                  const isFocused = c.key === spec.key;
-                  return `
-                    <tr class="${isFocused ? "bg-indigo-950/40" : ""}">
-                      <td class="py-2 pr-2 font-bold text-white whitespace-nowrap">${c.name}</td>
-                      <td class="py-2 px-2 font-mono text-indigo-300 whitespace-nowrap">${c.score}</td>
-                      <td class="py-2 px-2 text-slate-400">${c.note}</td>
-                      <td class="py-2 pl-2 text-right whitespace-nowrap">
-                        <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap ${
-                          c.ok ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
-                        }">${c.ok ? "CALL READY" : "GAP: -" + c.gap}</span>
-                      </td>
-                    </tr>
-                  `;
-                }).join("")}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
