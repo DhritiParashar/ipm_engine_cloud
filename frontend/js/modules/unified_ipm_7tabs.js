@@ -26,11 +26,18 @@
       fullLabel: "All-8 IIMs Comprehensive Master",
       campusName: "IIM Indore (5-Yr IPM)",
       apiExam: "ALL",
+      pyqExamFilter: "ALL",
       qCount: 30,
       mins: 45,
       pattern: "100 Qs | 150 Mins | Unified Pool",
       marking: "MCQ +4/-1 | SA +4/0 (Zero Penalty)",
-      note: "Unified multi-campus benchmark across Indore, Ranchi, Rohtak, Bodh Gaya, Jammu, Bangalore, Mumbai & Lucknow."
+      note: "Unified multi-campus benchmark across Indore, Ranchi, Rohtak, Bodh Gaya, Jammu, Bangalore, Mumbai & Lucknow.",
+      practiceSections: [
+        { title: "QA Short Answer (Zero Negative)", section: "QUANT_SA", suffix: "SA", qCount: 12, mins: 18, badge: "INDORE SA DRILL", desc: "Numeric short-answer drills with 0 negative marking penalty." },
+        { title: "QA & Higher Math MCQ Sprint", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "QUANT +4/-1", desc: "Arithmetic, Algebra, Logs, Matrices & Functions speed sprint." },
+        { title: "DI & Logical Reasoning Set", section: "DILR", suffix: "LR", qCount: 15, mins: 22, badge: "DILR +4/-1", desc: "Caselets, Data Sufficiency, Seating & Business Analytics." },
+        { title: "VARC, RC & Confusable Vocab", section: "VARC", suffix: "VA", qCount: 15, mins: 20, badge: "VERBAL +4/-1", desc: "Reading Comprehension, Para-jumbles, Idioms & Grammar." }
+      ]
     },
     {
       key: "INDORE",
@@ -40,11 +47,18 @@
       fullLabel: "IIM Indore (5-Yr IPM)",
       campusName: "IIM Indore (5-Yr IPM)",
       apiExam: "IPMAT",
+      pyqExamFilter: "IPMAT Indore",
       qCount: 25,
       mins: 38,
       pattern: "90 Qs (15 SA + 30 MCQ + 45 VA) | 120 Mins",
       marking: "MCQ +4/-1 | QA-SA +4/0 (Zero Penalty)",
-      note: "Strict 40-min sectional timers & cutoffs (SA ≥24, MCQ ≥40, VA ≥116) + 35% Personal Interview."
+      note: "Strict 40-min sectional timers & cutoffs (SA ≥24, MCQ ≥40, VA ≥116) + 35% Personal Interview.",
+      practiceSections: [
+        { title: "Indore QA-SA (Zero Penalty)", section: "QUANT_SA", suffix: "SA", qCount: 15, mins: 25, badge: "INDORE SEC 1 (+4/0)", desc: "Exact 15-Q Short Answer numeric drill with zero negative marking." },
+        { title: "Indore QA-MCQ & Higher Math", section: "QUANT_MCQ", suffix: "MCQ", qCount: 15, mins: 22, badge: "INDORE SEC 2 (+4/-1)", desc: "Logarithms, Matrices, Functions, Sequences & Number Theory." },
+        { title: "Indore Verbal Ability (45-Q Pace)", section: "VARC", suffix: "VA", qCount: 15, mins: 15, badge: "INDORE SEC 3 (+4/-1)", desc: "High-weightage RC, Para-jumbles, Idioms & Usage accuracy sprint." },
+        { title: "Indore Complete 3-Section Sprint", section: "", suffix: "MIX", qCount: 18, mins: 25, badge: "INDORE COMPOSITE", desc: "Balanced SA + MCQ + VA mini-simulation calibrated to ATS cutoffs." }
+      ]
     },
     {
       key: "RANCHI",
@@ -54,11 +68,18 @@
       fullLabel: "IIM Ranchi (5-Yr IPM)",
       campusName: "IIM Ranchi (5-Yr IPM)",
       apiExam: "IPMAT",
+      pyqExamFilter: "IPMAT Indore",
       qCount: 25,
       mins: 38,
       pattern: "Uses IPMAT Indore Score (No Sectional Bar) | 120 Mins",
       marking: "MCQ +4/-1 | SA +4/0 | 20% 10th/12th Weight",
-      note: "Evaluates overall IPMAT Indore composite (~172+ General) with 20% academic weightage and 30% PI."
+      note: "Evaluates overall IPMAT Indore composite (~172+ General) with 20% academic weightage and 30% PI.",
+      practiceSections: [
+        { title: "Ranchi Score Booster: QA-SA (+4/0)", section: "QUANT_SA", suffix: "SA", qCount: 15, mins: 25, badge: "NO SECTIONAL BAR", desc: "Maximize risk-free SA marks to push total IPMAT composite above 172+." },
+        { title: "Ranchi Quant MCQ Drill (+4/-1)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "QUANT +4/-1", desc: "High-yield Arithmetic & Algebra sets for overall composite gain." },
+        { title: "Ranchi Verbal Ability Maximizer", section: "VARC", suffix: "VA", qCount: 15, mins: 15, badge: "VERBAL +4/-1", desc: "Fast RC & Vocabulary scoring sprint for non-sectional-bar merit." },
+        { title: "Ranchi 172+ Composite Drill", section: "", suffix: "COMP", qCount: 18, mins: 25, badge: "RANCHI TARGET", desc: "Mixed Indore-pattern drill tuned for Ranchi shortlist cutoff." }
+      ]
     },
     {
       key: "ROHTAK",
@@ -68,11 +89,18 @@
       fullLabel: "IIM Rohtak (5-Yr IPM)",
       campusName: "IIM Rohtak (5-Yr IPM)",
       apiExam: "Rohtak",
+      pyqExamFilter: "IPMAT Rohtak",
       qCount: 30,
       mins: 40,
       pattern: "120 Qs (40 QA + 40 LR + 40 VA) | 120 Mins",
       marking: "MCQ +4/-1 across all 3 sections | 30% Acad Weight",
-      note: "High-speed accuracy test (~390+/480 General cutoff) combined with 10% Class 10 & 20% Class 12 weight."
+      note: "High-speed accuracy test (~390+/480 General cutoff) combined with 10% Class 10 & 20% Class 12 weight.",
+      practiceSections: [
+        { title: "Rohtak Quantitative Ability (40-Q Pace)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 15, badge: "ROHTAK SEC 1 (+4/-1)", desc: "1-minute-per-question Arithmetic, Algebra & Mensuration speed drill." },
+        { title: "Rohtak Logical Reasoning (40-Q Pace)", section: "DILR", suffix: "LR", qCount: 15, mins: 15, badge: "ROHTAK SEC 2 (+4/-1)", desc: "Coding-decoding, Blood Relations, Syllogisms, Clocks & Arrangements." },
+        { title: "Rohtak Verbal Ability (40-Q Pace)", section: "VARC", suffix: "VA", qCount: 15, mins: 15, badge: "ROHTAK SEC 3 (+4/-1)", desc: "Grammar, Antonyms/Synonyms, Para-completion & Short RCs." },
+        { title: "Rohtak 390+ High-Speed Sprint", section: "", suffix: "SPD", qCount: 20, mins: 20, badge: "ROHTAK 1-MIN/Q", desc: "20 questions in 20 minutes to build 90%+ accuracy under Rohtak clock." }
+      ]
     },
     {
       key: "BODHGAYA",
@@ -82,11 +110,18 @@
       fullLabel: "IIM Bodh Gaya (5-Yr IPM)",
       campusName: "IIM Bodh Gaya (5-Yr IPM)",
       apiExam: "JIPMAT",
+      pyqExamFilter: "JIPMAT",
       qCount: 30,
       mins: 40,
       pattern: "100 Qs (33 QA + 33 DILR + 34 VARC) | 150 Mins",
       marking: "MCQ +4/-1 | 100% JIPMAT Merit (No PI)",
-      note: "Direct admission via NTA JIPMAT score (~315+/400 General) with zero interview stage."
+      note: "Direct admission via NTA JIPMAT score (~315+/400 General) with zero interview stage.",
+      practiceSections: [
+        { title: "JIPMAT Quantitative Aptitude (33-Q)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "NTA JIPMAT QA", desc: "Arithmetic, Ratios, Percentages, Time-Speed-Distance & Geometry." },
+        { title: "JIPMAT DI & Logical Reasoning (33-Q)", section: "DILR", suffix: "DILR", qCount: 15, mins: 22, badge: "NTA JIPMAT DILR", desc: "Tables, Bar/Pie DI, Blood Relations, Series & Seating Puzzles." },
+        { title: "JIPMAT VARC & Grammar (34-Q)", section: "VARC", suffix: "VARC", qCount: 15, mins: 20, badge: "NTA JIPMAT VARC", desc: "RC Passages, Idioms, Active/Passive, Error Spotting & Vocab." },
+        { title: "Bodh Gaya 315+ Direct Merit Drill", section: "", suffix: "MERIT", qCount: 20, mins: 28, badge: "NO PI • 100% CBT", desc: "Mixed JIPMAT simulation calibrated to Bodh Gaya Merit List 1." }
+      ]
     },
     {
       key: "JAMMU",
@@ -96,11 +131,18 @@
       fullLabel: "IIM Jammu (5-Yr IPM)",
       campusName: "IIM Jammu (5-Yr IPM)",
       apiExam: "JIPMAT",
+      pyqExamFilter: "JIPMAT",
       qCount: 30,
       mins: 40,
       pattern: "100 Qs (33 QA + 33 DILR + 34 VARC) | 150 Mins",
       marking: "MCQ +4/-1 | JIPMAT Merit + Diversity Weight",
-      note: "Direct admission via NTA JIPMAT score (~310+/400 General) plus gender diversity points."
+      note: "Direct admission via NTA JIPMAT score (~310+/400 General) plus gender diversity points.",
+      practiceSections: [
+        { title: "JIPMAT Quantitative Aptitude (33-Q)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "NTA JIPMAT QA", desc: "Arithmetic, Profit-Loss, Mensuration & Number System drills." },
+        { title: "JIPMAT DI & Logical Reasoning (33-Q)", section: "DILR", suffix: "DILR", qCount: 15, mins: 22, badge: "NTA JIPMAT DILR", desc: "Caselet DI, Venn Diagrams, Directions & Analytical Puzzles." },
+        { title: "JIPMAT VARC & Comprehension (34-Q)", section: "VARC", suffix: "VARC", qCount: 15, mins: 20, badge: "NTA JIPMAT VARC", desc: "Reading Comprehension, Sentence Correction & Confusable Words." },
+        { title: "IIM Jammu 310+ Merit Sprint", section: "", suffix: "MERIT", qCount: 20, mins: 28, badge: "JAMMU CUTOFF", desc: "Full JIPMAT pattern sprint tuned for IIM Jammu admission cutoff." }
+      ]
     },
     {
       key: "BANGALORE",
@@ -110,11 +152,18 @@
       fullLabel: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
       campusName: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
       apiExam: "IIM",
+      pyqExamFilter: "IIM Bangalore",
       qCount: 20,
       mins: 30,
       pattern: "60 Qs (Quant/Stats + Business DI + Verbal) | 90 Mins",
       marking: "MCQ +4/-1 | Class 12 Math Mandatory for B.Sc.",
-      note: "Quantitative Economics, Data Science & Digital Business entrance (~235+/300) followed by PI."
+      note: "Quantitative Economics, Data Science & Digital Business entrance (~235+/300) followed by PI.",
+      practiceSections: [
+        { title: "IIMB Higher Math, Stats & Calculus", section: "QUANT_MCQ", suffix: "MATH", qCount: 15, mins: 22, badge: "B.SC. ECON/DS CORE", desc: "Probability, Functions, Matrices, Calculus & Statistical Inference." },
+        { title: "IIMB Business & Economics DI", section: "DILR", suffix: "BIZDI", qCount: 15, mins: 22, badge: "DIGITAL BUSINESS DI", desc: "Macroeconomic charts, Revenue/Funnel Analytics & Caselets." },
+        { title: "IIMB Verbal & Critical Reasoning", section: "VARC", suffix: "CR", qCount: 15, mins: 20, badge: "CRITICAL REASONING", desc: "Argument analysis, Assumption/Inference & Policy Comprehension." },
+        { title: "IIMB 235+ UG Entrance Sprint", section: "", suffix: "UG", qCount: 18, mins: 27, badge: "IIMB B.SC. / BBA", desc: "Combined Quantitative + Business DI + Verbal practice set." }
+      ]
     },
     {
       key: "MUMBAI",
@@ -124,11 +173,18 @@
       fullLabel: "IIM Mumbai (4-Yr BS Digital & Supply Chain)",
       campusName: "IIM Mumbai (4-Yr BS Digital & Supply Chain)",
       apiExam: "IIM",
+      pyqExamFilter: "IIM Mumbai & Lucknow",
       qCount: 20,
       mins: 30,
       pattern: "Higher Math, Analytics & Supply Chain Aptitude | 90 Mins",
       marking: "MCQ +4/-1 | Class 12 Math Mandatory",
-      note: "Quantitative & analytical track (~96.0+%ile JEE / IPMAT equivalent) with Class 12 Mathematics."
+      note: "Quantitative & analytical track (~96.0+%ile JEE / IPMAT equivalent) with Class 12 Mathematics.",
+      practiceSections: [
+        { title: "Higher Math & JEE Quantitative Bridge", section: "QUANT_MCQ", suffix: "HMATH", qCount: 15, mins: 22, badge: "CLASS 12 MATH CORE", desc: "Permutations, Probability, Matrices, Calculus & Optimization." },
+        { title: "Supply Chain & Queuing Analytics", section: "DILR", suffix: "SCM", qCount: 15, mins: 22, badge: "OPS & ANALYTICS", desc: "Network routing, Inventory ratios, Bottleneck DI & Logic." },
+        { title: "Business VARC & Tech Comprehension", section: "VARC", suffix: "VA", qCount: 15, mins: 20, badge: "TECH-MGMT VARC", desc: "Analytical passages, Precision Grammar & Vocabulary." },
+        { title: "IIM Mumbai 4-Yr BS Readiness Set", section: "", suffix: "BS", qCount: 18, mins: 27, badge: "IIMM TECH-MGMT", desc: "Calibrated practice drill for IIM Mumbai BS Digital & Supply Chain." }
+      ]
     },
     {
       key: "LUCKNOW",
@@ -138,11 +194,18 @@
       fullLabel: "IIM Lucknow (4-Yr Tech-Mgmt UG)",
       campusName: "IIM Lucknow (4-Yr Tech-Mgmt UG)",
       apiExam: "IIM",
+      pyqExamFilter: "IIM Mumbai & Lucknow",
       qCount: 20,
       mins: 30,
       pattern: "Higher Math, Decision Analytics & VARC | 90 Mins",
       marking: "MCQ +4/-1 | 85%+ Class 10/12 + Math",
-      note: "Combines strong Class 10/12 academic rigor (85%+) with quantitative and leadership PI."
+      note: "Combines strong Class 10/12 academic rigor (85%+) with quantitative and leadership PI.",
+      practiceSections: [
+        { title: "Decision Math & Quantitative Rigor", section: "QUANT_MCQ", suffix: "QMATH", qCount: 15, mins: 22, badge: "IIML QUANT CORE", desc: "Functions, Inequalities, Combinatorics, Stats & Algebra." },
+        { title: "Hypothesis & Business Data Logic", section: "DILR", suffix: "DL", qCount: 15, mins: 22, badge: "DECISION ANALYTICS", desc: "Multi-variable tables, Logical deduction & Caselet DI." },
+        { title: "VARC & Editorial Comprehension", section: "VARC", suffix: "VA", qCount: 15, mins: 20, badge: "IIML VERBAL", desc: "Editorial RC, Critical Reasoning & Vocabulary precision." },
+        { title: "IIM Lucknow UG Composite Sprint", section: "", suffix: "UG", qCount: 18, mins: 27, badge: "IIML TECH-MGMT", desc: "Unified Quant + Analytics + VARC drill for IIM Lucknow UG." }
+      ]
     }
   ];
 
@@ -153,6 +216,19 @@
   window.selectIndividualIimMode = function (key) {
     window.ACTIVE_IIM_KEY = key;
     if (window.IPM_STATE) window.IPM_STATE.mode = key;
+    const spec = window.getActiveIpmModeSpec();
+    if (spec && spec.pyqExamFilter) {
+      window.PYQ_EXAM_FILTER = spec.pyqExamFilter;
+      if (spec.pyqExamFilter !== "ALL" && spec.pyqExamFilter !== "IPMAT Indore" && window.PYQ_YEAR_FILTER === "ARCHIVE_2019_2021") {
+        window.PYQ_YEAR_FILTER = "ALL";
+      }
+      if (spec.pyqExamFilter === "IIM Bangalore" && ["2022", "2023"].includes(window.PYQ_YEAR_FILTER)) {
+        window.PYQ_YEAR_FILTER = "ALL";
+      }
+      if (spec.pyqExamFilter === "IIM Mumbai & Lucknow" && ["2022", "2023", "2024"].includes(window.PYQ_YEAR_FILTER)) {
+        window.PYQ_YEAR_FILTER = "ALL";
+      }
+    }
     renderIndividualIimBar();
     if (typeof window.renderActiveTab === "function") window.renderActiveTab();
   };
@@ -798,12 +874,16 @@
     const hasStagedPyq = window.PG_MOCK && !window.PG_MOCK.started && Array.isArray(window.PG_MOCK.questions) && window.PG_MOCK.questions.length > 0;
     const pracHist = getMockHistory().filter(h => h.isPractice).slice().reverse();
 
-    const sectionalCards = [
-      { title: "QA Short Answer (Zero Negative)", section: "QUANT_SA", code: `PRAC-${spec.code}-SA`, qCount: 12, mins: 18, badge: "INDORE SA DRILL", desc: "Numeric short-answer drills with 0 negative marking penalty." },
-      { title: "QA & Higher Math MCQ Sprint", section: "QUANT_MCQ", code: `PRAC-${spec.code}-QA`, qCount: 15, mins: 22, badge: "QUANT +4/-1", desc: "Arithmetic, Algebra, Logs, Matrices & Functions speed sprint." },
-      { title: "DI & Logical Reasoning Set", section: "DILR", code: `PRAC-${spec.code}-LR`, qCount: 15, mins: 22, badge: "DILR +4/-1", desc: "Caselets, Data Sufficiency, Seating & Business Analytics." },
-      { title: "VARC, RC & Confusable Vocab", section: "VARC", code: `PRAC-${spec.code}-VA`, qCount: 15, mins: 20, badge: "VERBAL +4/-1", desc: "Reading Comprehension, Para-jumbles, Idioms & Grammar." }
-    ];
+    const sectionalCards = (spec.practiceSections || []).map(s => ({
+      title: s.title,
+      section: s.section,
+      apiExam: spec.apiExam,
+      code: `PRAC-${spec.code}-${s.suffix}`,
+      qCount: s.qCount,
+      mins: s.mins,
+      badge: s.badge,
+      desc: s.desc
+    }));
 
     el.innerHTML = `
       <div class="space-y-4">
@@ -844,7 +924,7 @@
                   <div class="text-[11px] font-semibold text-indigo-300">${c.qCount} Qs &bull; ${c.mins} Mins</div>
                   <p class="text-[11px] text-slate-400">${c.desc}</p>
                 </div>
-                <button type="button" onclick="window.launchIpmUnifiedMock({ isPractice: true, modeCode: '${c.code}', section: '${c.section}', qCount: ${c.qCount}, title: '${c.title} (${spec.shortLabel})' })"
+                <button type="button" onclick="window.launchIpmUnifiedMock({ isPractice: true, modeCode: '${c.code}', apiExam: '${c.apiExam}', section: '${c.section}', qCount: ${c.qCount}, title: '${c.title} (${spec.shortLabel})' })"
                   class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold cursor-pointer">
                   Start Practice Sprint &rarr;
                 </button>
@@ -916,6 +996,7 @@
   };
 
   window.renderTab6 = function (el) {
+    const spec = window.getActiveIpmModeSpec();
     if (typeof origRenderTab9Pyq === "function") {
       origRenderTab9Pyq(el);
       setTimeout(() => {
@@ -924,6 +1005,13 @@
             b.textContent = "Practice Filtered Set in Tab 5 Practice Mock →";
           }
         });
+        const hdr = el.querySelector("h2");
+        if (hdr && !el.querySelector(".ipm-pyq-mode-pill")) {
+          const badge = document.createElement("span");
+          badge.className = "ipm-pyq-mode-pill ml-2 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-extrabold";
+          badge.textContent = `Synced to Top Mode: ${spec.shortLabel} (${window.PYQ_EXAM_FILTER})`;
+          hdr.appendChild(badge);
+        }
       }, 30);
     }
   };
