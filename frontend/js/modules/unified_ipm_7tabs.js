@@ -343,12 +343,21 @@
   }, 600);
 
   function getMockHistory() {
-    try {
-      const h = JSON.parse(localStorage.getItem("ipm_mock_history_v1") || "[]");
-      return Array.isArray(h) ? h : [];
-    } catch (_) {
-      return [];
+    let merged = [];
+    for (const k of ["ipm_mock_history_v1", "pg_mock_history", "ipm_attempt_ledger"]) {
+      try {
+        const arr = JSON.parse(localStorage.getItem(k) || "[]");
+        if (Array.isArray(arr)) merged = merged.concat(arr);
+      } catch (_) {}
     }
+    const seen = new Set();
+    return merged.filter(item => {
+      if (!item || typeof item !== "object") return false;
+      const id = item.serialId || `${item.title}-${item.score}-${item.date}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
   }
 
   function saveMockAttemptToLedger(entry) {
@@ -1255,12 +1264,31 @@
     window.renderActiveTab();
   };
 
+  function normalizeMockForSync(rec) {
+    if (!rec) return null;
+    const copy = { ...rec };
+    if (!copy.secStats || Object.keys(copy.secStats).length === 0) {
+      const totalQ = Math.max(4, Math.round((Number(copy.maxScore) || 120) / 4));
+      const perSec = Math.max(1, Math.floor(totalQ / 4));
+      const ratio = Math.max(0, Number(copy.score || 0)) / Math.max(1, Number(copy.maxScore || 120));
+      const estScore = Math.round(perSec * 4 * ratio);
+      copy.secStats = {
+        "QA-SA": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore },
+        "QA-MCQ": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore },
+        "DILR": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore },
+        "VARC": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore }
+      };
+    }
+    return copy;
+  }
+
   window.syncSpecificIpmMockToTab7 = function (serialId) {
     const hist = getMockHistory();
-    const match = hist.find(h => h.serialId === serialId) || hist[hist.length - 1];
+    const raw = hist.find(h => String(h.serialId) === String(serialId)) || hist[hist.length - 1];
+    const match = normalizeMockForSync(raw);
     if (match) {
       window.IPM_T7_STORE.syncedRecord = match;
-      window.IPM_T7_STORE.toast = `Synced Mock ${match.serialId} (${match.score}/${match.maxScore} • ${match.accuracyPct || 0}% Acc) against your Locked Target.`;
+      window.IPM_T7_STORE.toast = `Synced Mock ${match.serialId || "LATEST"} (${match.score}/${match.maxScore} • ${match.accuracyPct || 0}% Acc) against your Locked Target.`;
       persistT7Store();
     }
     if (window.IPM_STATE && window.IPM_STATE.activeTab !== "tab7") {
@@ -1279,14 +1307,27 @@
       return;
     }
     const campusMatches = hist.filter(h => h.campusKey === spec.key);
-    const chosen = campusMatches.length ? campusMatches[campusMatches.length - 1] : hist[hist.length - 1];
+    const raw = campusMatches.length ? campusMatches[campusMatches.length - 1] : hist[hist.length - 1];
+    const chosen = normalizeMockForSync(raw);
     window.IPM_T7_STORE.syncedRecord = chosen;
     window.IPM_T7_STORE.toast = campusMatches.length
       ? `Synced latest ${spec.shortLabel} mock: ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc).`
-      : `No ${spec.shortLabel}-specific mock logged yet — synced latest overall mock ${chosen.serialId} (${chosen.score}/${chosen.maxScore}).`;
+      : `Synced latest logged mock ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc).`;
     persistT7Store();
     window.renderActiveTab();
   };
+
+  // Capture-phase listener guarantees Sync Mock & Set/Reset Target fire even if another script intercepts clicks
+  document.addEventListener("click", function (ev) {
+    const btn = ev.target && ev.target.closest ? ev.target.closest("[data-ipm-t7-action]") : null;
+    if (!btn) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    const act = btn.getAttribute("data-ipm-t7-action");
+    if (act === "sync") window.syncLatestIpmMockToTab7();
+    else if (act === "lock") window.lockIpmDesiredTarget();
+    else if (act === "reset") window.resetIpmDesiredTarget();
+  }, true);
 
   window.updateIpmT7Slider = function (key, val) {
     window.IPM_T7_STORE.draft[key] = key === "hasMath" ? Boolean(val) : parseFloat(val);
@@ -1389,15 +1430,15 @@
                 <p class="text-[11px] text-slate-400 mt-0.5">Move sliders to preview, then click <strong>Set Target</strong> to lock into the matrix, or <strong>Sync Mock</strong> to pull any executed Tab 4/5 mock.</p>
               </div>
               <div class="flex flex-col gap-1.5 shrink-0">
-                <button type="button" onclick="window.lockIpmDesiredTarget()"
+                <button type="button" data-ipm-t7-action="lock" onclick="window.lockIpmDesiredTarget()"
                   class="px-3.5 py-1.5 rounded-xl ${hasUnsavedChanges ? "bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-300" : "bg-indigo-600 hover:bg-indigo-500 text-white"} text-xs font-extrabold shadow cursor-pointer">
                   &#127919; Set Target
                 </button>
-                <button type="button" onclick="window.resetIpmDesiredTarget()"
+                <button type="button" data-ipm-t7-action="reset" onclick="window.resetIpmDesiredTarget()"
                   class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer">
                   &#8634; Reset Target
                 </button>
-                <button type="button" onclick="window.syncLatestIpmMockToTab7()"
+                <button type="button" data-ipm-t7-action="sync" onclick="window.syncLatestIpmMockToTab7()"
                   class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow cursor-pointer">
                   &#8635; Sync Mock
                 </button>
