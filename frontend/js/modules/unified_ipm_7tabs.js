@@ -281,6 +281,9 @@
     const spec = window.getActiveIpmModeSpec();
     if (spec && spec.pyqExamFilter) {
       window.PYQ_EXAM_FILTER = spec.pyqExamFilter;
+    if (window.STAGED_PYQ_MOCK && window.STAGED_PYQ_MOCK.exam && window.STAGED_PYQ_MOCK.exam !== spec.pyqExamFilter && spec.key !== "ALL") {
+      window.STAGED_PYQ_MOCK = null;
+    }
       if (spec.pyqExamFilter !== "ALL" && spec.pyqExamFilter !== "IPMAT Indore" && window.PYQ_YEAR_FILTER === "ARCHIVE_2019_2021") {
         window.PYQ_YEAR_FILTER = "ALL";
       }
@@ -1099,6 +1102,21 @@
   };
 
   // TAB 5: Dedicated Practice Mock & Sectional Sprints (100% Free & Unlimited)
+  window.stageCurrentModePyqsForTab5 = async function () {
+    const spec = window.getActiveIpmModeSpec();
+    try {
+      const qs = await fetchBankQuestions(spec.apiExam, "", 15);
+      if (qs && qs.length) {
+        window.STAGED_PYQ_MOCK = {
+          title: `${spec.shortLabel} (${spec.pyqExamFilter}) PYQ Sprint (${qs.length} Qs)`,
+          exam: spec.pyqExamFilter,
+          questions: qs
+        };
+        window.renderActiveTab();
+      }
+    } catch (_) {}
+  };
+
   window.renderTab5 = function (el) {
     if (window.PG_MOCK && window.PG_MOCK.started && window.PG_MOCK.isPractice) {
       renderActiveOrSubmittedMockRunner(el, "Practice Mock Lobby");
