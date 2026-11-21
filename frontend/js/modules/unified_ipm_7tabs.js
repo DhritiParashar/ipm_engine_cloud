@@ -551,6 +551,10 @@
 
   window.submitPgMock = function () {
     if (!window.PG_MOCK || window.PG_MOCK.submitted) return;
+    const activeSa = document.getElementById('pgMockSaInput');
+    if (activeSa && window.PG_MOCK.questions && window.PG_MOCK.questions[window.PG_MOCK.currentIndex]) {
+      window.PG_MOCK.answers[window.PG_MOCK.questions[window.PG_MOCK.currentIndex].id] = activeSa.value;
+    }
     if (window.PG_MOCK.timerId) clearInterval(window.PG_MOCK.timerId);
 
     const qs = window.PG_MOCK.questions || [];
@@ -615,6 +619,49 @@
       secSummary: diag.secSummary
     });
 
+    window.renderActiveTab();
+  };
+
+  window.saveAndNextPgMock = function () {
+    if (!window.PG_MOCK || !Array.isArray(window.PG_MOCK.questions)) return;
+    const idx = window.PG_MOCK.currentIndex;
+    const q = window.PG_MOCK.questions[idx];
+    if (q) {
+      const saInput = document.getElementById("pgMockSaInput");
+      if (saInput) {
+        window.PG_MOCK.answers[q.id] = saInput.value;
+      }
+      if (window.PG_MOCK.marked) delete window.PG_MOCK.marked[q.id];
+    }
+    if (idx < window.PG_MOCK.questions.length - 1) {
+      window.PG_MOCK.currentIndex = idx + 1;
+    }
+    window.renderActiveTab();
+  };
+
+  window.clearPgMockResponse = function () {
+    if (!window.PG_MOCK || !Array.isArray(window.PG_MOCK.questions)) return;
+    const q = window.PG_MOCK.questions[window.PG_MOCK.currentIndex];
+    if (q) {
+      delete window.PG_MOCK.answers[q.id];
+      if (window.PG_MOCK.marked) delete window.PG_MOCK.marked[q.id];
+    }
+    window.renderActiveTab();
+  };
+
+  window.markReviewAndNextPgMock = function () {
+    if (!window.PG_MOCK || !Array.isArray(window.PG_MOCK.questions)) return;
+    const idx = window.PG_MOCK.currentIndex;
+    const q = window.PG_MOCK.questions[idx];
+    if (q) {
+      const saInput = document.getElementById("pgMockSaInput");
+      if (saInput) window.PG_MOCK.answers[q.id] = saInput.value;
+      window.PG_MOCK.marked = window.PG_MOCK.marked || {};
+      window.PG_MOCK.marked[q.id] = true;
+    }
+    if (idx < window.PG_MOCK.questions.length - 1) {
+      window.PG_MOCK.currentIndex = idx + 1;
+    }
     window.renderActiveTab();
   };
 
@@ -737,18 +784,45 @@
               }).join("")}
             </div>
           ` : `
-            <input type="text" value="${window.PG_MOCK.answers[q.id] || ""}" onchange="window.savePgMockAnswer('${q.id}', this.value)"
-              placeholder="Type exact number..." class="w-full max-w-xs px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-mono" />
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="pgMockSaInput" type="text" value="${window.PG_MOCK.answers[q.id] || ""}"
+                oninput="window.PG_MOCK.answers['${q.id}'] = this.value"
+                onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.saveAndNextPgMock(); }"
+                placeholder="Type exact number..." class="w-full max-w-xs px-3.5 py-2.5 rounded-xl bg-slate-950 border border-indigo-500/50 text-white text-sm font-mono focus:outline-none focus:border-indigo-400" />
+              <span class="text-[11px] text-slate-400">Press <strong>Enter</strong> or click <strong>Save &amp; Next &rarr;</strong></span>
+            </div>
           `}
-          <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800">
-            <div class="flex gap-2">
-              <button type="button" onclick="window.jumpPgMockQ(${idx - 1})" ${idx === 0 ? "disabled" : ""} class="px-3.5 py-1.5 rounded-xl bg-slate-800 disabled:opacity-40 text-xs font-bold text-white">&larr; Previous</button>
-              <button type="button" onclick="window.jumpPgMockQ(${idx + 1})" ${idx === qs.length - 1 ? "disabled" : ""} class="px-3.5 py-1.5 rounded-xl bg-indigo-600 disabled:opacity-40 text-xs font-bold text-white">Next &rarr;</button>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="window.jumpPgMockQ(${idx - 1})" ${idx === 0 ? "disabled" : ""}
+                class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-xs font-bold text-white cursor-pointer">
+                &larr; Previous
+              </button>
+              <button type="button" onclick="window.clearPgMockResponse()"
+                class="px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 cursor-pointer">
+                Clear Response
+              </button>
+              <button type="button" onclick="window.markReviewAndNextPgMock()"
+                class="px-3.5 py-2 rounded-xl bg-purple-600/25 hover:bg-purple-600/35 border border-purple-500/40 text-xs font-bold text-purple-200 cursor-pointer">
+                &#128278; Mark for Review &amp; Next
+              </button>
+              <button type="button" onclick="window.saveAndNextPgMock()"
+                class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-extrabold text-white shadow cursor-pointer">
+                &#10003; ${idx === qs.length - 1 ? "Save Response" : "Save & Next →"}
+              </button>
             </div>
             <div class="flex flex-wrap gap-1">
               ${qs.map((item, qi) => {
                 const ansd = window.PG_MOCK.answers[item.id] !== undefined && String(window.PG_MOCK.answers[item.id]).trim() !== "";
-                return `<button type="button" onclick="window.jumpPgMockQ(${qi})" class="w-7 h-7 rounded-lg text-[11px] font-bold ${qi === idx ? "bg-amber-500 text-slate-950" : ansd ? "bg-emerald-600/40 text-emerald-200 border border-emerald-500/40" : "bg-slate-950 text-slate-400 border border-slate-800"}">${qi + 1}</button>`;
+                const marked = window.PG_MOCK.marked && window.PG_MOCK.marked[item.id];
+                const cls = qi === idx
+                  ? "bg-amber-500 text-slate-950 ring-2 ring-amber-300"
+                  : marked
+                    ? "bg-purple-600/40 text-purple-200 border border-purple-400"
+                    : ansd
+                      ? "bg-emerald-600/40 text-emerald-200 border border-emerald-500/40"
+                      : "bg-slate-950 text-slate-400 border border-slate-800";
+                return `<button type="button" onclick="window.jumpPgMockQ(${qi})" class="w-7 h-7 rounded-lg text-[11px] font-bold cursor-pointer ${cls}">${qi + 1}</button>`;
               }).join("")}
             </div>
           </div>
