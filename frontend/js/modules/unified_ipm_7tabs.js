@@ -1254,13 +1254,27 @@
   // TAB 7: Individual 9-IIM + CUET-UG Call & Target Forecaster (Draft vs Locked Target + Sync Selector v35)
   const DEFAULT_T7_VALUES = {
     c10: 92, c12: 90, hasMath: true,
+    // Indore & Ranchi (/360)
     indSa: 32, indMcq: 56, indVa: 132,
-    rohtak: 405, jipmat: 330, iimbUg: 250, iimkBms: 265, cuetScore: 675, jeePct: 97.2
+    // Rohtak (/480 = 160 + 160 + 160)
+    rohQa: 136, rohLr: 136, rohVa: 136,
+    // JIPMAT Bodh Gaya & Jammu (/400 = 132 + 132 + 136)
+    jipQa: 110, jipDilr: 110, jipVa: 112,
+    // IIM Bangalore UG (/300 = 120 + 90 + 90)
+    iimbQa: 100, iimbDi: 75, iimbVa: 75,
+    // IIM Mumbai 4-Yr BS (/360 = 120 + 120 + 120)
+    iimmQa: 96, iimmDi: 96, iimmVa: 96,
+    // IIM Kozhikode 4-Yr BMS (/400 = 140 + 130 + 130)
+    iimkQa: 94, iimkLr: 86, iimkVa: 86,
+    // IIM Lucknow 4-Yr Tech-Mgmt (/360 = 120 + 120 + 120)
+    iimlQa: 96, iimlDi: 92, iimlVa: 92,
+    // CUET-UG (/750 = 250 + 250 + 250)
+    cuetGat: 225, cuetEng: 225, cuetMath: 225
   };
 
   function loadSavedT7() {
     try {
-      const saved = JSON.parse(localStorage.getItem("ipm_t7_locked_targets_v2") || "null");
+      const saved = JSON.parse(localStorage.getItem("ipm_t7_locked_targets_v3") || "null");
       if (saved && saved.locked) return saved;
     } catch (_) {}
     return {
@@ -1276,52 +1290,65 @@
 
   const MODE_SLIDER_GROUPS = {
     ALL: [
-      { key: "indSa", label: "IPMAT Indore QA-SA", min: 0, max: 60, step: 1, unit: "/60", cutoff: 24 },
-      { key: "indMcq", label: "IPMAT Indore QA-MCQ", min: 0, max: 120, step: 2, unit: "/120", cutoff: 40 },
-      { key: "indVa", label: "IPMAT Indore Verbal Ability", min: 0, max: 180, step: 2, unit: "/180", cutoff: 116 },
-      { key: "rohtak", label: "IPMAT Rohtak Composite", min: 150, max: 480, step: 5, unit: "/480", cutoff: 390 },
-      { key: "jipmat", label: "JIPMAT (Bodh Gaya & Jammu)", min: 150, max: 400, step: 5, unit: "/400", cutoff: 315 },
-      { key: "cuetScore", label: "CUET-UG (GAT + Eng + Math)", min: 300, max: 750, step: 5, unit: "/750", cutoff: 650 }
+      { key: "indSa", label: "QA Short Answer (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 24, mockKey: "QA-SA" },
+      { key: "indMcq", label: "QA & Higher Math (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 40, mockKey: "QA-MCQ" },
+      { key: "rohLr", label: "DI & Logical Reasoning", min: 0, max: 160, step: 2, unit: "/160", cutoff: 125, mockKey: "DILR" },
+      { key: "indVa", label: "VARC & Verbal Ability", min: 0, max: 180, step: 2, unit: "/180", cutoff: 116, mockKey: "VARC" }
     ],
     INDORE: [
-      { key: "indSa", label: "Section 1: QA Short Answer (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 24 },
-      { key: "indMcq", label: "Section 2: QA MCQ & Higher Math (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 40 },
-      { key: "indVa", label: "Section 3: Verbal Ability (+4/-1)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 116 }
+      { key: "indSa", label: "Section 1: QA Short Answer (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 24, mockKey: "QA-SA" },
+      { key: "indMcq", label: "Section 2: QA MCQ & Higher Math (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 40, mockKey: "QA-MCQ" },
+      { key: "indVa", label: "Section 3: Verbal Ability (+4/-1)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 116, mockKey: "VARC" }
     ],
     RANCHI: [
-      { key: "indSa", label: "IPMAT QA-SA Component (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 20 },
-      { key: "indMcq", label: "IPMAT QA-MCQ Component (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 44 },
-      { key: "indVa", label: "IPMAT Verbal Ability Component (+4/-1)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 108 }
+      { key: "indSa", label: "IPMAT QA-SA Component (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 20, mockKey: "QA-SA" },
+      { key: "indMcq", label: "IPMAT QA-MCQ Component (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 44, mockKey: "QA-MCQ" },
+      { key: "indVa", label: "IPMAT Verbal Ability Component (+4/-1)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 108, mockKey: "VARC" }
     ],
     ROHTAK: [
-      { key: "rohtak", label: "IPMAT Rohtak Total (QA + LR + VA)", min: 150, max: 480, step: 5, unit: "/480", cutoff: 390 }
+      { key: "rohQa", label: "Rohtak Quantitative Ability (40 Qs)", min: 0, max: 160, step: 2, unit: "/160", cutoff: 128, mockKey: "QA-MCQ" },
+      { key: "rohLr", label: "Rohtak Logical Reasoning (40 Qs)", min: 0, max: 160, step: 2, unit: "/160", cutoff: 130, mockKey: "DILR" },
+      { key: "rohVa", label: "Rohtak Verbal Ability (40 Qs)", min: 0, max: 160, step: 2, unit: "/160", cutoff: 132, mockKey: "VARC" }
     ],
     BODHGAYA: [
-      { key: "jipmat", label: "NTA JIPMAT Total (QA + DILR + VARC)", min: 150, max: 400, step: 5, unit: "/400", cutoff: 315 }
+      { key: "jipQa", label: "JIPMAT Quantitative Aptitude (33 Qs)", min: 0, max: 132, step: 2, unit: "/132", cutoff: 102, mockKey: "QA-MCQ" },
+      { key: "jipDilr", label: "JIPMAT DI & Logical Reasoning (33 Qs)", min: 0, max: 132, step: 2, unit: "/132", cutoff: 105, mockKey: "DILR" },
+      { key: "jipVa", label: "JIPMAT VARC & Grammar (34 Qs)", min: 0, max: 136, step: 2, unit: "/136", cutoff: 108, mockKey: "VARC" }
     ],
     JAMMU: [
-      { key: "jipmat", label: "NTA JIPMAT Total (QA + DILR + VARC)", min: 150, max: 400, step: 5, unit: "/400", cutoff: 310 }
+      { key: "jipQa", label: "JIPMAT Quantitative Aptitude (33 Qs)", min: 0, max: 132, step: 2, unit: "/132", cutoff: 100, mockKey: "QA-MCQ" },
+      { key: "jipDilr", label: "JIPMAT DI & Logical Reasoning (33 Qs)", min: 0, max: 132, step: 2, unit: "/132", cutoff: 104, mockKey: "DILR" },
+      { key: "jipVa", label: "JIPMAT VARC & Grammar (34 Qs)", min: 0, max: 136, step: 2, unit: "/136", cutoff: 106, mockKey: "VARC" }
     ],
     BANGALORE: [
-      { key: "iimbUg", label: "IIMB UG Entrance (Quant/Stats + Biz DI + VA)", min: 100, max: 300, step: 5, unit: "/300", cutoff: 235 }
+      { key: "iimbQa", label: "IIMB Quant, Stats & Calculus", min: 0, max: 120, step: 2, unit: "/120", cutoff: 94, mockKey: "QA-MCQ" },
+      { key: "iimbDi", label: "IIMB Business & Economics DI", min: 0, max: 90, step: 2, unit: "/90", cutoff: 70, mockKey: "DILR" },
+      { key: "iimbVa", label: "IIMB Verbal & Critical Reasoning", min: 0, max: 90, step: 2, unit: "/90", cutoff: 71, mockKey: "VARC" }
     ],
     MUMBAI: [
-      { key: "jeePct", label: "JEE Main / Quantitative Percentile", min: 80, max: 100, step: 0.2, unit: "%ile", cutoff: 96.0 }
+      { key: "iimmQa", label: "IIM Mumbai Higher Math & Optimization", min: 0, max: 120, step: 2, unit: "/120", cutoff: 90, mockKey: "QA-MCQ" },
+      { key: "iimmDi", label: "IIM Mumbai Analytics & Supply Chain DI", min: 0, max: 120, step: 2, unit: "/120", cutoff: 90, mockKey: "DILR" },
+      { key: "iimmVa", label: "IIM Mumbai VARC & Business Communication", min: 0, max: 120, step: 2, unit: "/120", cutoff: 84, mockKey: "VARC" }
     ],
     KOZHIKODE: [
-      { key: "iimkBms", label: "IIMK BMS Aptitude Test (Quant + LR + VARC)", min: 120, max: 400, step: 5, unit: "/400", cutoff: 240 }
+      { key: "iimkQa", label: "IIMK BMS Quantitative Aptitude", min: 0, max: 140, step: 2, unit: "/140", cutoff: 84, mockKey: "QA-MCQ" },
+      { key: "iimkLr", label: "IIMK Business & Data Logic", min: 0, max: 130, step: 2, unit: "/130", cutoff: 78, mockKey: "DILR" },
+      { key: "iimkVa", label: "IIMK VARC & Comprehension", min: 0, max: 130, step: 2, unit: "/130", cutoff: 78, mockKey: "VARC" }
     ],
     LUCKNOW: [
-      { key: "indMcq", label: "Higher Math & Decision Quant (/120)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 52 },
-      { key: "indVa", label: "VARC & Leadership Aptitude (/180)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 120 }
+      { key: "iimlQa", label: "IIM Lucknow Higher Math & Decision Quant", min: 0, max: 120, step: 2, unit: "/120", cutoff: 90, mockKey: "QA-MCQ" },
+      { key: "iimlDi", label: "IIM Lucknow Business Data & Logic", min: 0, max: 120, step: 2, unit: "/120", cutoff: 86, mockKey: "DILR" },
+      { key: "iimlVa", label: "IIM Lucknow VARC & Leadership Aptitude", min: 0, max: 120, step: 2, unit: "/120", cutoff: 88, mockKey: "VARC" }
     ],
     CUET: [
-      { key: "cuetScore", label: "CUET-UG Composite (GAT + English + Math)", min: 300, max: 750, step: 5, unit: "/750", cutoff: 650 }
+      { key: "cuetGat", label: "CUET General Aptitude Test (GAT)", min: 0, max: 250, step: 5, unit: "/250", cutoff: 215, mockKey: "DILR" },
+      { key: "cuetEng", label: "CUET English Language & RC", min: 0, max: 250, step: 5, unit: "/250", cutoff: 220, mockKey: "VARC" },
+      { key: "cuetMath", label: "CUET Applied & Core Mathematics", min: 0, max: 250, step: 5, unit: "/250", cutoff: 215, mockKey: "QA-MCQ" }
     ]
   };
 
   function persistT7Store() {
-    localStorage.setItem("ipm_t7_locked_targets_v2", JSON.stringify({
+    localStorage.setItem("ipm_t7_locked_targets_v3", JSON.stringify({
       draft: window.IPM_T7_STORE.draft,
       locked: window.IPM_T7_STORE.locked,
       lockedAt: window.IPM_T7_STORE.lockedAt,
@@ -1334,7 +1361,7 @@
     st.locked = { ...st.draft };
     const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     st.lockedAt = `Target Locked at ${ts}`;
-    st.toast = `Target locked (${st.locked.indSa + st.locked.indMcq + st.locked.indVa}/360 Indore • ${st.locked.rohtak}/480 Rohtak • ${st.locked.cuetScore}/750 CUET). Matrix updated!`;
+    st.toast = `Desired sectional targets locked (${ts}). Achievement & Campus Shortlist Matrix updated!`;
     persistT7Store();
     window.renderActiveTab();
   };
@@ -1345,28 +1372,10 @@
     st.locked = { ...DEFAULT_T7_VALUES };
     st.syncedRecord = null;
     st.lockedAt = "Reset to 99%ile Benchmark";
-    st.toast = "All sliders, locked targets, and synced mock comparisons reset to baseline.";
+    st.toast = "All sectional sliders, locked targets, and synced mocks reset to 99%ile baseline.";
     persistT7Store();
     window.renderActiveTab();
   };
-
-  function normalizeMockForSync(rec) {
-    if (!rec) return null;
-    const copy = { ...rec };
-    if (!copy.secStats || Object.keys(copy.secStats).length === 0) {
-      const totalQ = Math.max(4, Math.round((Number(copy.maxScore) || 120) / 4));
-      const perSec = Math.max(1, Math.floor(totalQ / 4));
-      const ratio = Math.max(0, Number(copy.score || 0)) / Math.max(1, Number(copy.maxScore || 120));
-      const estScore = Math.round(perSec * 4 * ratio);
-      copy.secStats = {
-        "QA-SA": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore },
-        "QA-MCQ": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore },
-        "DILR": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore },
-        "VARC": { total: perSec, correct: Math.round(perSec * ratio), wrong: 0, score: estScore }
-      };
-    }
-    return copy;
-  }
 
   window.syncSpecificIpmMockToTab7 = function (serialId) {
     const hist = getMockHistory();
@@ -1385,7 +1394,6 @@
   };
 
   window.syncLatestIpmMockToTab7 = function () {
-    const spec = window.getActiveIpmModeSpec();
     const hist = getMockHistory();
     if (!hist.length) {
       window.IPM_T7_STORE.toast = "No mocks executed yet — complete a mock in Tab 4 or Tab 5 first, then click Sync Mock.";
@@ -1393,20 +1401,13 @@
       return;
     }
     const raw = hist[hist.length - 1];
-
     const chosen = normalizeMockForSync(raw);
     window.IPM_T7_STORE.syncedRecord = chosen;
-
-    if (Number(chosen.score || 0) <= 0) {
-      window.IPM_T7_STORE.toast = `Synced ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • 0% Acc). Note: 0-mark mock has no positive score to project — attempt & save answers in Tab 4/5 for accurate section calibration.`;
-    } else {
-      window.IPM_T7_STORE.toast = `Synced latest logged mock ${chosen.serialId}: ${chosen.score}/${chosen.maxScore} (${chosen.accuracyPct || 0}% Acc).`;
-    }
+    window.IPM_T7_STORE.toast = `Synced latest logged mock ${chosen.serialId}: ${chosen.score}/${chosen.maxScore} (${chosen.accuracyPct || 0}% Acc).`;
     persistT7Store();
     window.renderActiveTab();
   };
 
-  // Capture-phase listener guarantees Sync Mock & Set/Reset Target fire even if another script intercepts clicks
   document.addEventListener("click", function (ev) {
     const btn = ev.target && ev.target.closest ? ev.target.closest("[data-ipm-t7-action]") : null;
     if (!btn) return;
@@ -1434,11 +1435,34 @@
     const synced = st.syncedRecord;
 
     const sliders = MODE_SLIDER_GROUPS[spec.key] || MODE_SLIDER_GROUPS.ALL;
-    const draftIndTotal = d.indSa + d.indMcq + d.indVa;
+
+    // Locked totals per campus
     const indTotal = t.indSa + t.indMcq + t.indVa;
+    const draftIndTotal = d.indSa + d.indMcq + d.indVa;
     const indAts = ((t.indSa / 60) * 20 + (t.indMcq / 120) * 20 + (t.indVa / 180) * 25).toFixed(1);
 
-    // Derive actual projected scores from syncedRecord when a mock is synced
+    const rohTotal = t.rohQa + t.rohLr + t.rohVa;
+    const draftRohTotal = d.rohQa + d.rohLr + d.rohVa;
+
+    const jipTotal = t.jipQa + t.jipDilr + t.jipVa;
+    const draftJipTotal = d.jipQa + d.jipDilr + d.jipVa;
+
+    const iimbTotal = t.iimbQa + t.iimbDi + t.iimbVa;
+    const draftIimbTotal = d.iimbQa + d.iimbDi + d.iimbVa;
+
+    const iimmTotal = t.iimmQa + t.iimmDi + t.iimmVa;
+    const draftIimmTotal = d.iimmQa + d.iimmDi + d.iimmVa;
+
+    const iimkTotal = t.iimkQa + t.iimkLr + t.iimkVa;
+    const draftIimkTotal = d.iimkQa + d.iimkLr + d.iimkVa;
+
+    const iimlTotal = t.iimlQa + t.iimlDi + t.iimlVa;
+    const draftIimlTotal = d.iimlQa + d.iimlDi + d.iimlVa;
+
+    const cuetTotal = t.cuetGat + t.cuetEng + t.cuetMath;
+    const draftCuetTotal = d.cuetGat + d.cuetEng + d.cuetMath;
+
+    // Actual mock projections when synced
     const mockRatio = synced
       ? Math.max(0, Number(synced.score || 0)) / Math.max(1, Number(synced.maxScore || 120))
       : null;
@@ -1455,107 +1479,72 @@
     const actIndVa = synced ? Math.round(180 * secRatioOrOverall("VARC")) : null;
     const actIndTotal = synced ? (actIndSa + actIndMcq + actIndVa) : null;
     const actIndAts = synced ? ((actIndSa / 60) * 20 + (actIndMcq / 120) * 20 + (actIndVa / 180) * 25).toFixed(1) : null;
+
     const actRohtak = synced ? Math.round(480 * mockRatio) : null;
     const actJipmat = synced ? Math.round(400 * mockRatio) : null;
     const actIimb = synced ? Math.round(300 * mockRatio) : null;
+    const actIimm = synced ? Math.round(360 * mockRatio) : null;
     const actIimk = synced ? Math.round(400 * mockRatio) : null;
+    const actIiml = synced ? Math.round(360 * mockRatio) : null;
     const actCuet = synced ? Math.round(750 * mockRatio) : null;
-    const actJee = synced ? +(75 + 24.5 * mockRatio).toFixed(1) : null;
 
-    // Effective scores used for Shortlist Matrix & KPI Banner: Actual Mock when synced, Locked Target otherwise
     const effIndSa = synced ? actIndSa : t.indSa;
     const effIndMcq = synced ? actIndMcq : t.indMcq;
     const effIndVa = synced ? actIndVa : t.indVa;
     const effIndTotal = synced ? actIndTotal : indTotal;
-    const effRohtak = synced ? actRohtak : t.rohtak;
-    const effJipmat = synced ? actJipmat : t.jipmat;
-    const effIimb = synced ? actIimb : t.iimbUg;
-    const effIimk = synced ? actIimk : t.iimkBms;
-    const effCuet = synced ? actCuet : t.cuetScore;
-    const effJee = synced ? actJee : t.jeePct;
+    const effRohtak = synced ? actRohtak : rohTotal;
+    const effJipmat = synced ? actJipmat : jipTotal;
+    const effIimb = synced ? actIimb : iimbTotal;
+    const effIimm = synced ? actIimm : iimmTotal;
+    const effIimk = synced ? actIimk : iimkTotal;
+    const effIiml = synced ? actIiml : iimlTotal;
+    const effCuet = synced ? actCuet : cuetTotal;
 
     let primaryPreview = synced ? `${actIndTotal} / 360` : `${draftIndTotal} / 360`;
-    let primarySub = synced ? `Actual Mock Projection (${synced.serialId}) • Target: ${indTotal}/360` : `Target Simulation • ATS ${indAts}/65`;
+    let primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${indTotal}/360` : `Target Simulation • ATS ${indAts}/65`;
     let tierLabel = !synced ? "Awaiting Tab 4 / Tab 5 Mock" : effIndTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : effIndTotal >= 175 ? "Strong PI Call Zone" : `Below Cutoff (Need +${180 - effIndTotal} Marks)`;
 
     if (spec.key === "ROHTAK") {
-      primaryPreview = synced ? `${actRohtak} / 480` : `${d.rohtak} / 480`;
-      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.rohtak}/480` : `Target Simulation • Acad ${(((d.c10 + d.c12) / 200) * 30).toFixed(1)}/30`;
-      tierLabel = effRohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - effRohtak} Marks for PI Call`;
+      primaryPreview = synced ? `${actRohtak} / 480` : `${draftRohTotal} / 480`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${rohTotal}/480` : `Target Simulation • Acad ${(((d.c10 + d.c12) / 200) * 30).toFixed(1)}/30`;
+      tierLabel = !synced ? "Awaiting Rohtak Mock" : effRohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - effRohtak} Marks for PI Call`;
     } else if (spec.key === "BODHGAYA" || spec.key === "JAMMU") {
       const bar = spec.key === "BODHGAYA" ? 315 : 310;
-      primaryPreview = synced ? `${actJipmat} / 400` : `${d.jipmat} / 400`;
-      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.jipmat}/400` : `Target Simulation • NTA JIPMAT`;
-      tierLabel = effJipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - effJipmat} Marks in JIPMAT`;
+      primaryPreview = synced ? `${actJipmat} / 400` : `${draftJipTotal} / 400`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${jipTotal}/400` : `Target Simulation • NTA JIPMAT`;
+      tierLabel = !synced ? `Awaiting ${spec.shortLabel} Mock` : effJipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - effJipmat} Marks in JIPMAT`;
     } else if (spec.key === "BANGALORE") {
-      primaryPreview = synced ? `${actIimb} / 300` : `${d.iimbUg} / 300`;
-      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.iimbUg}/300` : `Target Simulation • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
-      tierLabel = d.hasMath && effIimb >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : `Need +${Math.max(0, 235 - effIimb)} Marks (235+ Cutoff)`;
+      primaryPreview = synced ? `${actIimb} / 300` : `${draftIimbTotal} / 300`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${iimbTotal}/300` : `Target Simulation • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
+      tierLabel = !synced ? "Awaiting IIMB UG Mock" : d.hasMath && effIimb >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : `Need +${Math.max(0, 235 - effIimb)} Marks (235+ Cutoff)`;
     } else if (spec.key === "MUMBAI") {
-      primaryPreview = synced ? `${actJee}%ile` : `${d.jeePct}%ile`;
-      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.jeePct}%ile` : `Target Simulation • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
-      tierLabel = d.hasMath && effJee >= 96.0 ? "IIM Mumbai 4-Yr BS Shortlist Zone" : "Target ≥96.0%ile + Class 12 Math";
+      primaryPreview = synced ? `${actIimm} / 360` : `${draftIimmTotal} / 360`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${iimmTotal}/360` : `Target Simulation • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
+      tierLabel = !synced ? "Awaiting IIM Mumbai BS Mock" : d.hasMath && effIimm >= 264 ? "IIM Mumbai 4-Yr BS Shortlist Ready" : `Need +${Math.max(0, 264 - effIimm)} Marks (264+ Cutoff)`;
     } else if (spec.key === "KOZHIKODE") {
-      primaryPreview = synced ? `${actIimk} / 400` : `${d.iimkBms} / 400`;
-      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.iimkBms}/400` : `Target Simulation • 4-Yr BMS Hons`;
-      tierLabel = effIimk >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - effIimk} Marks in IIMK Test`;
+      primaryPreview = synced ? `${actIimk} / 400` : `${draftIimkTotal} / 400`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${iimkTotal}/400` : `Target Simulation • 4-Yr BMS Hons`;
+      tierLabel = !synced ? "Awaiting IIMK BMS Mock" : effIimk >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - effIimk} Marks in IIMK Test`;
+    } else if (spec.key === "LUCKNOW") {
+      primaryPreview = synced ? `${actIiml} / 360` : `${draftIimlTotal} / 360`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${iimlTotal}/360` : `Target Simulation • Acads ${((d.c10 + d.c12) / 2).toFixed(1)}%`;
+      tierLabel = !synced ? "Awaiting IIM Lucknow UG Mock" : d.hasMath && effIiml >= 264 ? "IIM Lucknow 4-Yr UG Shortlist Ready" : `Need +${Math.max(0, 264 - effIiml)} Marks (264+ Cutoff)`;
     } else if (spec.key === "CUET") {
-      primaryPreview = synced ? `${actCuet} / 750` : `${d.cuetScore} / 750`;
-      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.cuetScore}/750` : `Target Simulation • GAT + Eng + Math`;
-      tierLabel = effCuet >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - effCuet} Marks for Top-Tier BMS`;
+      primaryPreview = synced ? `${actCuet} / 750` : `${draftCuetTotal} / 750`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${cuetTotal}/750` : `Target Simulation • GAT + Eng + Math`;
+      tierLabel = !synced ? "Awaiting CUET-UG Mock" : effCuet >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - effCuet} Marks for Top-Tier BMS`;
     }
 
     const secStats = (synced && synced.secStats) || {};
     const isZeroMock = synced && Number(synced.score || 0) <= 0 && Number(synced.correct || 0) === 0;
-    const rawRowsByMode = {
-      INDORE: [
-        { label: "Section 1: QA Short Answer (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
-        { label: "Section 2: QA MCQ & Higher Math (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
-        { label: "Section 3: Verbal Ability (+4/-1)", target: t.indVa, max: 180, mockKey: "VARC" }
-      ],
-      RANCHI: [
-        { label: "IPMAT QA-SA Component (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
-        { label: "IPMAT QA-MCQ Component (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
-        { label: "IPMAT Verbal Ability Component (+4/-1)", target: t.indVa, max: 180, mockKey: "VARC" }
-      ],
-      ROHTAK: [
-        { label: "Rohtak Quantitative Ability (/160)", target: Math.round(t.rohtak / 3), max: 160, mockKey: "QA-MCQ" },
-        { label: "Rohtak Logical Reasoning (/160)", target: Math.round(t.rohtak / 3), max: 160, mockKey: "DILR" },
-        { label: "Rohtak Verbal Ability (/160)", target: t.rohtak - 2 * Math.round(t.rohtak / 3), max: 160, mockKey: "VARC" }
-      ],
-      BODHGAYA: [
-        { label: "JIPMAT Quantitative Aptitude (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "QA-MCQ" },
-        { label: "JIPMAT DI & Logical Reasoning (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "DILR" },
-        { label: "JIPMAT VARC & Grammar (/136)", target: t.jipmat - 2 * Math.round(t.jipmat * 0.33), max: 136, mockKey: "VARC" }
-      ],
-      JAMMU: [
-        { label: "JIPMAT Quantitative Aptitude (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "QA-MCQ" },
-        { label: "JIPMAT DI & Logical Reasoning (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "DILR" },
-        { label: "JIPMAT VARC & Grammar (/136)", target: t.jipmat - 2 * Math.round(t.jipmat * 0.33), max: 136, mockKey: "VARC" }
-      ],
-      BANGALORE: [
-        { label: "IIMB Quant, Stats & Calculus (/120)", target: Math.round(t.iimbUg * 0.4), max: 120, mockKey: "QA-MCQ" },
-        { label: "IIMB Business & Econ DI (/90)", target: Math.round(t.iimbUg * 0.3), max: 90, mockKey: "DILR" },
-        { label: "IIMB Verbal & Critical Reasoning (/90)", target: t.iimbUg - Math.round(t.iimbUg * 0.4) - Math.round(t.iimbUg * 0.3), max: 90, mockKey: "VARC" }
-      ],
-      KOZHIKODE: [
-        { label: "IIMK BMS Quantitative Aptitude (/140)", target: Math.round(t.iimkBms * 0.35), max: 140, mockKey: "QA-MCQ" },
-        { label: "IIMK Business & Data Logic (/130)", target: Math.round(t.iimkBms * 0.325), max: 130, mockKey: "DILR" },
-        { label: "IIMK VARC & Comprehension (/130)", target: t.iimkBms - Math.round(t.iimkBms * 0.35) - Math.round(t.iimkBms * 0.325), max: 130, mockKey: "VARC" }
-      ],
-      CUET: [
-        { label: "CUET General Aptitude Test (GAT /250)", target: Math.round(t.cuetScore / 3), max: 250, mockKey: "DILR" },
-        { label: "CUET English Language & RC (/250)", target: Math.round(t.cuetScore / 3), max: 250, mockKey: "VARC" },
-        { label: "CUET Applied / Core Math (/250)", target: t.cuetScore - 2 * Math.round(t.cuetScore / 3), max: 250, mockKey: "QA-MCQ" }
-      ]
-    };
 
-    const activeRawRows = rawRowsByMode[spec.key] || [
-      { label: "QA Short Answer (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
-      { label: "QA & Higher Math (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
-      { label: "DI & Logical Reasoning", target: Math.round((t.rohtak / 480) * 160), max: 160, mockKey: "DILR" },
-      { label: "VARC & Verbal Ability", target: t.indVa, max: 180, mockKey: "VARC" }
-    ];
+    // 1-to-1 Matrix rows generated directly from the exact same sliders as the left panel
+    const activeRawRows = sliders.map(sl => ({
+      label: sl.label,
+      target: t[sl.key],
+      max: sl.max,
+      mockKey: sl.mockKey
+    }));
 
     const sectionRows = activeRawRows.map(r => {
       if (!synced) return { ...r, achieved: null, pct: 0, diff: null, zeroFlag: false };
@@ -1576,9 +1565,9 @@
       { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", targetDisp: `${t.jipmat}/400`, mockDisp: synced ? `${actJipmat}/400` : "Pending Mock", gap: Math.max(0, 315 - effJipmat), ok: effJipmat >= 315, note: "JIPMAT ≥315 (No PI)" },
       { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", targetDisp: `${t.jipmat}/400`, mockDisp: synced ? `${actJipmat}/400` : "Pending Mock", gap: Math.max(0, 310 - effJipmat), ok: effJipmat >= 310, note: "JIPMAT ≥310 + Diversity" },
       { key: "BANGALORE", name: "IIM Bangalore (B.Sc. / BBA)", targetDisp: `${t.iimbUg}/300`, mockDisp: synced ? `${actIimb}/300` : "Pending Mock", gap: Math.max(0, 235 - effIimb), ok: t.hasMath && effIimb >= 235, note: "≥235 + Class 12 Math" },
-      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS)", targetDisp: `${t.jeePct}%ile`, mockDisp: synced ? `${actJee}%ile` : "Pending Mock", gap: Math.max(0, +(96.0 - effJee).toFixed(1)), ok: t.hasMath && effJee >= 96.0, note: "≥96.0%ile + Class 12 Math" },
+      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS)", targetDisp: `${iimmTotal}/360`, mockDisp: synced ? `${actIimm}/360` : "Pending Mock", gap: Math.max(0, 264 - effIimm), ok: t.hasMath && effIimm >= 264, note: "≥264/360 + Class 12 Math" },
       { key: "KOZHIKODE", name: "IIM Kozhikode (4-Yr BMS)", targetDisp: `${t.iimkBms}/400`, mockDisp: synced ? `${actIimk}/400` : "Pending Mock", gap: Math.max(0, 240 - effIimk), ok: effIimk >= 240, note: "IIMK BMS ≥240 + PI" },
-      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr UG)", targetDisp: `${((t.c10 + t.c12) / 2).toFixed(1)}% Acads`, mockDisp: synced ? `${actIndTotal}/360 + Acads` : "Pending Mock", gap: 0, ok: t.hasMath && t.c10 >= 85 && t.c12 >= 85 && (!synced || effIndTotal >= 175), note: "85%+ Acads + Quant" },
+      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr UG)", targetDisp: `${iimlTotal}/360`, mockDisp: synced ? `${actIiml}/360` : "Pending Mock", gap: Math.max(0, 264 - effIiml), ok: t.hasMath && t.c10 >= 85 && t.c12 >= 85 && effIiml >= 264, note: "≥264/360 + 85% Acads & Math" },
       { key: "CUET", name: "CUET-UG (SSCBS / Top BMS)", targetDisp: `${t.cuetScore}/750`, mockDisp: synced ? `${actCuet}/750` : "Pending Mock", gap: Math.max(0, 650 - effCuet), ok: effCuet >= 650, note: "≥650/750 (99+%ile NTA)" }
     ];
 
