@@ -1386,11 +1386,16 @@
 
   window.resetIpmDesiredTarget = function () {
     const st = window.IPM_T7_STORE;
-    st.draft = { ...DEFAULT_T7_VALUES };
-    st.locked = { ...DEFAULT_T7_VALUES };
-    st.syncedRecord = null;
-    st.lockedAt = "Reset to 99%ile Benchmark";
-    st.toast = "All sectional sliders, locked targets, and synced mocks reset to 99%ile baseline.";
+    const hasUnsavedDraft = JSON.stringify(st.draft) !== JSON.stringify(st.locked);
+    if (hasUnsavedDraft) {
+      st.draft = { ...st.locked };
+      st.toast = `Draft sliders reverted to your last locked target (${st.lockedAt}). Click Reset Target again to restore 99%ile factory baseline.`;
+    } else {
+      st.draft = { ...DEFAULT_T7_VALUES };
+      st.locked = { ...DEFAULT_T7_VALUES };
+      st.lockedAt = "Reset to 99%ile Benchmark";
+      st.toast = "Restored factory 99%ile baseline defaults.";
+    }
     persistT7Store();
     window.renderActiveTab();
   };
