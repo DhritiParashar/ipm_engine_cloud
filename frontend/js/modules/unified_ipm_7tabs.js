@@ -1,5 +1,5 @@
 ﻿// ==============================================================================
-// GOALisB IIM UG & IPM MASTER ENGINE â€” FULL SUITE PARITY & SCORECARD ENGINE (v24)
+// GOALisB IIM UG & IPM MASTER ENGINE &mdash; FULL SUITE PARITY & SCORECARD ENGINE (v24)
 // - Adds Download Official Scorecard (.html / Print-to-PDF) & Exit Without Submission
 // - Adds full Question-by-Question Answer Key & Step-by-Step Solution Review
 // - Adds Paper Difficulty / Shift Tier + Candidate Honor-Code Declaration in Tab 4
@@ -342,6 +342,19 @@
     }
   }, 600);
 
+  window.clearIpmMockHistory = function () {
+    if (!window.confirm("Clear all test mock logs from the Attempt Ledger?")) return;
+    localStorage.removeItem("ipm_mock_history_v1");
+    localStorage.removeItem("pg_mock_history");
+    localStorage.removeItem("ipm_attempt_ledger");
+    if (window.IPM_T7_STORE) {
+      window.IPM_T7_STORE.syncedRecord = null;
+      window.IPM_T7_STORE.toast = "Mock Attempt Ledger cleared. Complete a scored mock in Tab 4 or Tab 5 to sync.";
+      persistT7Store();
+    }
+    window.renderActiveTab();
+  };
+
   function getMockHistory() {
     let merged = [];
     for (const k of ["ipm_mock_history_v1", "pg_mock_history", "ipm_attempt_ledger"]) {
@@ -407,14 +420,14 @@
       const topPos = ranked.find(r => r.score > 0);
       strengths.push(
         topPos
-          ? `${topPos.sec} (${topPos.acc}% â€” build above 70% for call safety)`
-          : "No section &ge;60% yet â€” focus on accuracy & eliminating negative-marking guesses"
+          ? `${topPos.sec} (${topPos.acc}% &mdash; build above 70% for call safety)`
+          : "No section &ge;60% yet &mdash; focus on accuracy & eliminating negative-marking guesses"
       );
     }
 
     return {
       strengths,
-      deficiencies: deficiencies.length ? deficiencies : ["All sections &ge;60% â€” tighten speed & negative-marking control"],
+      deficiencies: deficiencies.length ? deficiencies : ["All sections &ge;60% &mdash; tighten speed & negative-marking control"],
       secSummary: ranked.map(r => `${r.sec}: ${r.score}/${r.max}`).join(" &bull; ")
     };
   }
@@ -964,9 +977,12 @@
               <h3 class="text-sm font-extrabold text-white">Proctored Mock Attempt Log &amp; Sectional Strength/Deficiency Ledger (${fullHist.length})</h3>
               <p class="text-[11px] text-slate-400">Download official scorecards or sync any Serial ID directly to Tab 7 Forecaster.</p>
             </div>
-            <button type="button" onclick="window.switchTab('tab7')" class="px-3 py-1.5 rounded-xl bg-indigo-600/25 border border-indigo-500/40 text-indigo-300 text-xs font-bold cursor-pointer">
-              Open Tab 7 Forecaster &rarr;
-            </button>
+            <div class="flex items-center gap-2">
+              ${fullHist.length ? `<button type="button" onclick="window.clearIpmMockHistory()" class="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-200 text-xs font-bold cursor-pointer">Clear Test Logs</button>` : ""}
+              <button type="button" onclick="window.switchTab('tab7')" class="px-3 py-1.5 rounded-xl bg-indigo-600/25 border border-indigo-500/40 text-indigo-300 text-xs font-bold cursor-pointer">
+                Open Tab 7 Forecaster &rarr;
+              </button>
+            </div>
           </div>
 
           ${fullHist.length ? `
@@ -1307,16 +1323,15 @@
       return;
     }
     const campusMatches = hist.filter(h => h.campusKey === spec.key);
+    if (!campusMatches.length) {
+      window.IPM_T7_STORE.syncedRecord = null;
+      window.IPM_T7_STORE.toast = `No ${spec.shortLabel} (${spec.code}) mock executed yet — run a ${spec.shortLabel} mock in Tab 4/5 or pick another Serial ID from the dropdown.`;
+      persistT7Store();
+      window.renderActiveTab();
+      return;
+    }
     const scoredCampus = campusMatches.filter(h => Number(h.score || 0) > 0);
-    const scoredAny = hist.filter(h => Number(h.score || 0) > 0);
-
-    const raw = scoredCampus.length
-      ? scoredCampus[scoredCampus.length - 1]
-      : campusMatches.length
-        ? campusMatches[campusMatches.length - 1]
-        : scoredAny.length
-          ? scoredAny[scoredAny.length - 1]
-          : hist[hist.length - 1];
+    const raw = scoredCampus.length ? scoredCampus[scoredCampus.length - 1] : campusMatches[campusMatches.length - 1];
 
     const chosen = normalizeMockForSync(raw);
     window.IPM_T7_STORE.syncedRecord = chosen;
@@ -1655,7 +1670,7 @@
   window.askIpmTrapDoctor = function (title, detail) {
     const qBox = document.getElementById("doubt-question") || document.querySelector("#ipm-t8-right textarea");
     if (qBox) {
-      qBox.value = `Explain this IPMAT / IIM UG exam trap with a worked example and 30-second antidote:\n${title} â€” ${detail}`;
+      qBox.value = `Explain this IPMAT / IIM UG exam trap with a worked example and 30-second antidote:\n${title} &mdash; ${detail}`;
       window._IS_PRESET_TRAP_DOUBT = true;
       const btn = document.querySelector("#ipm-t8-right button");
       if (btn) btn.click();
