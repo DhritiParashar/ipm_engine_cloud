@@ -1082,62 +1082,96 @@
     }
   };
 
-  // TAB 7: Individual 8-IIM Call & Target Forecaster
-  window.IPM_T7_STATE = window.IPM_T7_STATE || {
+  // TAB 7: Individual 9-IIM + CUET-UG Call & Target Forecaster (NEET/CAT Parity v32)
+  window.IPM_T7_MODE = window.IPM_T7_MODE || "TARGET"; // "TARGET" | "MOCK"
+  window.IPM_T7_TARGETS = window.IPM_T7_TARGETS || {
     c10: 92,
     c12: 90,
     hasMath: true,
-    indSa: 28,
-    indMcq: 52,
-    indVa: 128,
-    rohtak: 395,
-    jipmat: 325,
-    iimbUg: 245,
-    iimkBms: 255,
-    cuetScore: 660,
-    jeePct: 96.8,
+    indSa: 32,
+    indMcq: 56,
+    indVa: 132,
+    rohtak: 405,
+    jipmat: 330,
+    iimbUg: 250,
+    iimkBms: 265,
+    cuetScore: 675,
+    jeePct: 97.2,
+    lockedAt: "Default 99%ile Target",
     syncedRecord: null
   };
 
-  function applyMockRecordToT7State(rec) {
-    if (!rec) return;
-    const ratio = Math.min(1, Math.max(0.15, Number(rec.score || 0) / Math.max(1, Number(rec.maxScore || 120))));
-    const cKey = String(rec.campusKey || "").toUpperCase();
-    window.IPM_T7_STATE.syncedRecord = rec;
+  const MODE_SLIDER_GROUPS = {
+    ALL: [
+      { key: "indSa", label: "IPMAT Indore QA-SA", min: 0, max: 60, step: 1, unit: "/60", cutoff: 24 },
+      { key: "indMcq", label: "IPMAT Indore QA-MCQ", min: 0, max: 120, step: 2, unit: "/120", cutoff: 40 },
+      { key: "indVa", label: "IPMAT Indore Verbal Ability", min: 0, max: 180, step: 2, unit: "/180", cutoff: 116 },
+      { key: "rohtak", label: "IPMAT Rohtak Composite", min: 150, max: 480, step: 5, unit: "/480", cutoff: 390 },
+      { key: "jipmat", label: "JIPMAT (Bodh Gaya & Jammu)", min: 150, max: 400, step: 5, unit: "/400", cutoff: 315 },
+      { key: "cuetScore", label: "CUET-UG (GAT + Eng + Math)", min: 300, max: 750, step: 5, unit: "/750", cutoff: 650 }
+    ],
+    INDORE: [
+      { key: "indSa", label: "Section 1: QA Short Answer (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 24 },
+      { key: "indMcq", label: "Section 2: QA MCQ & Higher Math (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 40 },
+      { key: "indVa", label: "Section 3: Verbal Ability (+4/-1)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 116 }
+    ],
+    RANCHI: [
+      { key: "indSa", label: "IPMAT QA-SA Component (+4/0)", min: 0, max: 60, step: 1, unit: "/60", cutoff: 20 },
+      { key: "indMcq", label: "IPMAT QA-MCQ Component (+4/-1)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 44 },
+      { key: "indVa", label: "IPMAT Verbal Ability Component (+4/-1)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 108 }
+    ],
+    ROHTAK: [
+      { key: "rohtak", label: "IPMAT Rohtak Total (QA + LR + VA)", min: 150, max: 480, step: 5, unit: "/480", cutoff: 390 }
+    ],
+    BODHGAYA: [
+      { key: "jipmat", label: "NTA JIPMAT Total (QA + DILR + VARC)", min: 150, max: 400, step: 5, unit: "/400", cutoff: 315 }
+    ],
+    JAMMU: [
+      { key: "jipmat", label: "NTA JIPMAT Total (QA + DILR + VARC)", min: 150, max: 400, step: 5, unit: "/400", cutoff: 310 }
+    ],
+    BANGALORE: [
+      { key: "iimbUg", label: "IIMB UG Entrance (Quant/Stats + Biz DI + VA)", min: 100, max: 300, step: 5, unit: "/300", cutoff: 235 }
+    ],
+    MUMBAI: [
+      { key: "jeePct", label: "JEE Main / Quantitative Percentile", min: 80, max: 100, step: 0.2, unit: "%ile", cutoff: 96.0 }
+    ],
+    KOZHIKODE: [
+      { key: "iimkBms", label: "IIMK BMS Aptitude Test (Quant + LR + VARC)", min: 120, max: 400, step: 5, unit: "/400", cutoff: 240 }
+    ],
+    LUCKNOW: [
+      { key: "indMcq", label: "Higher Math & Decision Quant (/120)", min: 0, max: 120, step: 2, unit: "/120", cutoff: 52 },
+      { key: "indVa", label: "VARC & Leadership Aptitude (/180)", min: 0, max: 180, step: 2, unit: "/180", cutoff: 120 }
+    ],
+    CUET: [
+      { key: "cuetScore", label: "CUET-UG Composite (GAT + English + Math)", min: 300, max: 750, step: 5, unit: "/750", cutoff: 650 }
+    ]
+  };
 
-    if (cKey === "ROHTAK") {
-      window.IPM_T7_STATE.rohtak = Math.round(480 * ratio);
-    } else if (cKey === "BODHGAYA" || cKey === "JAMMU") {
-      window.IPM_T7_STATE.jipmat = Math.round(400 * ratio);
-    } else if (cKey === "BANGALORE") {
-      window.IPM_T7_STATE.iimbUg = Math.round(300 * ratio);
-        window.IPM_T7_STATE.iimkBms = Math.round(400 * ratio);
-        window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
-    } else if (cKey === "KOZHIKODE") {
-      window.IPM_T7_STATE.iimkBms = Math.round(400 * ratio);
-        window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
-    } else if (cKey === "CUET") {
-      window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
-    } else if (cKey === "MUMBAI" || cKey === "LUCKNOW") {
-      window.IPM_T7_STATE.jeePct = +(88 + 11.5 * ratio).toFixed(1);
-    } else {
-      window.IPM_T7_STATE.indSa = Math.round(60 * ratio);
-      window.IPM_T7_STATE.indMcq = Math.round(120 * ratio);
-      window.IPM_T7_STATE.indVa = Math.round(180 * ratio);
-      if (cKey === "ALL") {
-        window.IPM_T7_STATE.rohtak = Math.round(480 * ratio);
-        window.IPM_T7_STATE.jipmat = Math.round(400 * ratio);
-        window.IPM_T7_STATE.iimbUg = Math.round(300 * ratio);
-        window.IPM_T7_STATE.iimkBms = Math.round(400 * ratio);
-        window.IPM_T7_STATE.cuetScore = Math.round(750 * ratio);
-      }
-    }
-  }
+  window.lockIpmDesiredTarget = function () {
+    window.IPM_T7_MODE = "TARGET";
+    window.IPM_T7_TARGETS.lockedAt = "Locked " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    localStorage.setItem("ipm_t7_locked_targets_v1", JSON.stringify(window.IPM_T7_TARGETS));
+    window.renderActiveTab();
+  };
+
+  window.resetIpmDesiredTarget = function () {
+    window.IPM_T7_MODE = "TARGET";
+    Object.assign(window.IPM_T7_TARGETS, {
+      c10: 92, c12: 90, hasMath: true,
+      indSa: 32, indMcq: 56, indVa: 132,
+      rohtak: 405, jipmat: 330, iimbUg: 250, iimkBms: 265, cuetScore: 675, jeePct: 97.2,
+      lockedAt: "Reset to 99%ile Benchmark"
+    });
+    window.renderActiveTab();
+  };
 
   window.syncSpecificIpmMockToTab7 = function (serialId) {
     const hist = getMockHistory();
     const match = hist.find(h => h.serialId === serialId) || hist[hist.length - 1];
-    if (match) applyMockRecordToT7State(match);
+    if (match) {
+      window.IPM_T7_TARGETS.syncedRecord = match;
+      window.IPM_T7_MODE = "MOCK";
+    }
     if (window.IPM_STATE && window.IPM_STATE.activeTab !== "tab7") {
       window.switchTab("tab7");
     } else {
@@ -1149,159 +1183,252 @@
     const spec = window.getActiveIpmModeSpec();
     const hist = getMockHistory();
     const match = hist.slice().reverse().find(h => h.campusKey === spec.key) || hist[hist.length - 1];
-    if (match) applyMockRecordToT7State(match);
+    if (match) {
+      window.IPM_T7_TARGETS.syncedRecord = match;
+      window.IPM_T7_MODE = "MOCK";
+    } else {
+      alert(`No ${spec.shortLabel} mock found yet. Complete a mock in Tab 4 or Tab 5 first, or adjust your Desired Self-Target sliders!`);
+    }
     window.renderActiveTab();
   };
 
   window.updateIpmT7Slider = function (key, val) {
-    window.IPM_T7_STATE[key] = key === "hasMath" ? Boolean(val) : parseFloat(val);
+    window.IPM_T7_TARGETS[key] = key === "hasMath" ? Boolean(val) : parseFloat(val);
     window.renderActiveTab();
   };
 
   window.renderTab7 = function (el) {
     const spec = window.getActiveIpmModeSpec();
-    const s = window.IPM_T7_STATE;
+    const t = window.IPM_T7_TARGETS;
     const hist = getMockHistory().slice().reverse();
-    const indTotal = s.indSa + s.indMcq + s.indVa;
-    const indAts = ((s.indSa / 60) * 20 + (s.indMcq / 120) * 20 + (s.indVa / 180) * 25).toFixed(1);
-    const rohtakComp = ((s.rohtak / 480) * 45 + (s.c10 / 100) * 10 + (s.c12 / 100) * 20).toFixed(1);
+    const fullMocksCount = hist.filter(h => !h.isPractice).length;
+    const synced = t.syncedRecord;
+
+    const sliders = MODE_SLIDER_GROUPS[spec.key] || MODE_SLIDER_GROUPS.ALL;
+    const indTotal = t.indSa + t.indMcq + t.indVa;
+    const indAts = ((t.indSa / 60) * 20 + (t.indMcq / 120) * 20 + (t.indVa / 180) * 25).toFixed(1);
+
+    // Primary KPI summary tailored to the active top campus pill
+    let primaryPreview = `${indTotal} / 360`;
+    let primarySub = `ATS ${indAts}/65 • Acads ${((t.c10 + t.c12) / 2).toFixed(1)}%`;
+    let tierLabel = indTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : indTotal >= 175 ? "Strong PI Call Zone" : "Below Cutoff — Boost Sectional Score";
+
+    if (spec.key === "ROHTAK") {
+      primaryPreview = `${t.rohtak} / 480`;
+      primarySub = `Acad Weight ${(((t.c10 + t.c12) / 200) * 30).toFixed(1)} / 30`;
+      tierLabel = t.rohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - t.rohtak} Marks for PI Call`;
+    } else if (spec.key === "BODHGAYA" || spec.key === "JAMMU") {
+      const bar = spec.key === "BODHGAYA" ? 315 : 310;
+      primaryPreview = `${t.jipmat} / 400`;
+      primarySub = `NTA JIPMAT • ${spec.key === "BODHGAYA" ? "100% CBT Merit" : "+ Diversity Points"}`;
+      tierLabel = t.jipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - t.jipmat} Marks in JIPMAT`;
+    } else if (spec.key === "BANGALORE") {
+      primaryPreview = `${t.iimbUg} / 300`;
+      primarySub = `Class 12 Math: ${t.hasMath ? "Verified" : "Missing"}`;
+      tierLabel = t.hasMath && t.iimbUg >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : "Check Class 12 Math / 235+ Target";
+    } else if (spec.key === "MUMBAI") {
+      primaryPreview = `${t.jeePct}%ile`;
+      primarySub = `Class 12 Math: ${t.hasMath ? "Verified" : "Missing"}`;
+      tierLabel = t.hasMath && t.jeePct >= 96.0 ? "IIM Mumbai 4-Yr BS Shortlist Zone" : "Target ≥96.0%ile + Class 12 Math";
+    } else if (spec.key === "KOZHIKODE") {
+      primaryPreview = `${t.iimkBms} / 400`;
+      primarySub = `Acads ${((t.c10 + t.c12) / 2).toFixed(1)}% • 4-Yr BMS Hons`;
+      tierLabel = t.iimkBms >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - t.iimkBms} Marks in IIMK Test`;
+    } else if (spec.key === "CUET") {
+      primaryPreview = `${t.cuetScore} / 750`;
+      primarySub = `GAT + English + Applied/Core Math`;
+      tierLabel = t.cuetScore >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - t.cuetScore} Marks for Top-Tier BMS`;
+    }
+
+    // Build Achievement vs Deficiency rows from synced mock OR active mode targets
+    const secStats = (synced && synced.secStats) || {};
+    const sectionRows = [
+      { label: "QA Short Answer (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
+      { label: "QA & Higher Math (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
+      { label: "DI & Logical Reasoning", target: Math.round((t.rohtak / 480) * 160), max: 160, mockKey: "DILR" },
+      { label: "VARC & Verbal Ability", target: t.indVa, max: 180, mockKey: "VARC" }
+    ].map(r => {
+      const m = secStats[r.mockKey];
+      const achieved = m && m.total > 0 ? Math.round((Math.max(0, m.score) / (m.total * 4)) * r.max) : null;
+      const pct = achieved !== null ? Math.min(100, Math.round((achieved / Math.max(1, r.target)) * 100)) : 0;
+      const diff = achieved !== null ? achieved - r.target : null;
+      return { ...r, achieved, pct, diff };
+    });
 
     const campuses = [
-      { key: "INDORE", name: "IIM Indore (5-Yr IPM)", yourScore: `${indTotal}/360 (ATS ${indAts}/65)`, cutoff: "SA &ge; 24 &bull; MCQ &ge; 40 &bull; VA &ge; 116 (Total ~180+)", gap: Math.max(0, 180 - indTotal), eligible: s.indSa >= 24 && s.indMcq >= 40 && s.indVa >= 116, note: s.indSa < 24 ? `Need +${24 - s.indSa} in QA-SA` : s.indMcq < 40 ? `Need +${40 - s.indMcq} in QA-MCQ` : s.indVa < 116 ? `Need +${116 - s.indVa} in VA` : "All 3 sectional cutoffs cleared!" },
-      { key: "RANCHI", name: "IIM Ranchi (5-Yr IPM)", yourScore: `${indTotal}/360 + Acads ${((s.c10 + s.c12) / 2).toFixed(1)}%`, cutoff: "Total ~172+ (No sectional bar, 20% 10th/12th weight)", gap: Math.max(0, 172 - indTotal), eligible: indTotal >= 172, note: indTotal >= 172 ? "Strong PI shortlist zone" : `Need +${172 - indTotal} overall IPMAT marks` },
-      { key: "ROHTAK", name: "IIM Rohtak (5-Yr IPM)", yourScore: `${s.rohtak}/480 (Pre-PI ${rohtakComp}/75)`, cutoff: "General ~385&ndash;405 / 480 + 30% Acad Weight", gap: Math.max(0, 390 - s.rohtak), eligible: s.rohtak >= 390, note: s.rohtak >= 390 ? "Above expected General PI call cutoff" : `Need +${390 - s.rohtak} marks in Rohtak CBT` },
-      { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", yourScore: `${s.jipmat}/400`, cutoff: "General ~310&ndash;325 / 400 (100% JIPMAT Merit)", gap: Math.max(0, 315 - s.jipmat), eligible: s.jipmat >= 315, note: s.jipmat >= 315 ? "Direct merit shortlist range" : `Need +${315 - s.jipmat} marks in JIPMAT` },
-      { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", yourScore: `${s.jipmat}/400`, cutoff: "General ~305&ndash;320 / 400 + Diversity", gap: Math.max(0, 310 - s.jipmat), eligible: s.jipmat >= 310, note: s.jipmat >= 310 ? "Competitive for Merit List 1" : `Need +${310 - s.jipmat} marks in JIPMAT` },
-      { key: "BANGALORE", name: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)", yourScore: `${s.iimbUg}/300 &bull; Class 12 Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Class 12 Math mandatory for B.Sc. &bull; ~235+/300", gap: Math.max(0, 235 - s.iimbUg), eligible: s.hasMath && s.iimbUg >= 235, note: !s.hasMath ? "Ineligible for B.Sc. (No Class 12 Math); eligible for BBA DBE" : s.iimbUg >= 235 ? "Eligible for both B.Sc. & BBA DBE PI" : `Need +${235 - s.iimbUg} in IIMB UG test` },
-      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS Digital & Supply Chain)", yourScore: `JEE ${s.jeePct}%ile &bull; Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Class 12 Math mandatory &bull; ~96.0+%ile equivalent", gap: Math.max(0, +(96.0 - s.jeePct).toFixed(1)), eligible: s.hasMath && s.jeePct >= 96.0, note: !s.hasMath ? "Requires Class 12 Mathematics" : s.jeePct >= 96.0 ? "Meets quantitative & JEE benchmark" : `Need +${(96.0 - s.jeePct).toFixed(1)}%ile` },
-      { key: "KOZHIKODE", name: "IIM Kozhikode (4-Yr BMS Hons)", yourScore: `${s.iimkBms}/400 + Acads ${((s.c10 + s.c12) / 2).toFixed(1)}%`, cutoff: "IIMK BMS Test ~240+/400 + Class 10/12 & PI", gap: Math.max(0, 240 - s.iimkBms), eligible: s.iimkBms >= 240, note: s.iimkBms >= 240 ? "Competitive for IIMK BMS Personal Interview" : `Need +${240 - s.iimkBms} marks in IIMK BMS Test` },
-      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr Tech-Mgmt UG)", yourScore: `Acads ${((s.c10 + s.c12) / 2).toFixed(1)}% &bull; Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Strong Class 10/12 (85%+) + Quantitative Aptitude", gap: 0, eligible: s.hasMath && s.c10 >= 85 && s.c12 >= 85, note: s.hasMath && s.c10 >= 85 && s.c12 >= 85 ? "Strong academic + quant profile" : "Requires 85%+ academics & Class 12 Math" }
+      { key: "INDORE", name: "IIM Indore (5-Yr IPM)", score: `${indTotal}/360 (ATS ${indAts}/65)`, gap: Math.max(0, 180 - indTotal), ok: t.indSa >= 24 && t.indMcq >= 40 && t.indVa >= 116, note: "SA ≥24 • MCQ ≥40 • VA ≥116" },
+      { key: "RANCHI", name: "IIM Ranchi (5-Yr IPM)", score: `${indTotal}/360`, gap: Math.max(0, 172 - indTotal), ok: indTotal >= 172, note: "Composite ≥172 + 20% Acads" },
+      { key: "ROHTAK", name: "IIM Rohtak (5-Yr IPM)", score: `${t.rohtak}/480`, gap: Math.max(0, 390 - t.rohtak), ok: t.rohtak >= 390, note: "Score ≥390 + 30% Acads" },
+      { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", score: `${t.jipmat}/400`, gap: Math.max(0, 315 - t.jipmat), ok: t.jipmat >= 315, note: "JIPMAT ≥315 (No PI)" },
+      { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", score: `${t.jipmat}/400`, gap: Math.max(0, 310 - t.jipmat), ok: t.jipmat >= 310, note: "JIPMAT ≥310 + Diversity" },
+      { key: "BANGALORE", name: "IIM Bangalore (B.Sc. / BBA)", score: `${t.iimbUg}/300`, gap: Math.max(0, 235 - t.iimbUg), ok: t.hasMath && t.iimbUg >= 235, note: "≥235 + Class 12 Math" },
+      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS)", score: `${t.jeePct}%ile`, gap: Math.max(0, +(96.0 - t.jeePct).toFixed(1)), ok: t.hasMath && t.jeePct >= 96.0, note: "≥96.0%ile + Class 12 Math" },
+      { key: "KOZHIKODE", name: "IIM Kozhikode (4-Yr BMS)", score: `${t.iimkBms}/400`, gap: Math.max(0, 240 - t.iimkBms), ok: t.iimkBms >= 240, note: "IIMK BMS ≥240 + PI" },
+      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr UG)", score: `${((t.c10 + t.c12) / 2).toFixed(1)}% Acads`, gap: 0, ok: t.hasMath && t.c10 >= 85 && t.c12 >= 85, note: "85%+ Acads + Class 12 Math" },
+      { key: "CUET", name: "CUET-UG (SSCBS / Top BMS)", score: `${t.cuetScore}/750`, gap: Math.max(0, 650 - t.cuetScore), ok: t.cuetScore >= 650, note: "≥650/750 (99+%ile NTA)" }
     ];
 
-    const callsCount = campuses.filter(c => c.eligible).length;
-    const synced = s.syncedRecord;
+    const readyCount = campuses.filter(c => c.ok).length;
 
     el.innerHTML = `
-      <div class="space-y-4">
-        <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-lg font-bold text-white">9-IIM Call &amp; Target Forecaster &bull; ${spec.fullLabel}</h2>
-              <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-extrabold">${callsCount} / 9 IIMs Shortlist Ready</span>
-              ${synced ? `<span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold">Synced: ${synced.serialId}</span>` : ""}
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <!-- LEFT PANEL: NEET/CAT-STYLE SELF-TARGET & SYNC CONTROLS -->
+        <div class="lg:col-span-5 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs shadow-lg">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span class="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-extrabold uppercase">
+                MODE: ${window.IPM_T7_MODE === "MOCK" ? "ACTUAL MOCK SYNCED" : "DESIRED SELF-TARGET"}
+              </span>
+              <h2 class="text-lg font-extrabold text-white mt-1.5">Set Desired ${spec.shortLabel} Target</h2>
+              <p class="text-[11px] text-slate-400 mt-0.5">Adjust sliders below, click <strong>Set Target</strong> to lock your goal, or click <strong>Sync Mock</strong> to compare actual Tab 4/5 achievement.</p>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">Select any of the 8 IIM pills above and click <strong>Sync Mock</strong> to evaluate present level, sectional strengths, and deficiencies.</p>
+            <div class="flex flex-col gap-1.5 shrink-0">
+              <button type="button" onclick="window.lockIpmDesiredTarget()"
+                class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold shadow cursor-pointer">
+                &#127919; Set Target
+              </button>
+              <button type="button" onclick="window.resetIpmDesiredTarget()"
+                class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer">
+                Reset Target
+              </button>
+              <button type="button" onclick="window.syncLatestIpmMockToTab7()"
+                class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow cursor-pointer">
+                &#8635; Sync Mock
+              </button>
+            </div>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" onclick="window.syncLatestIpmMockToTab7()"
-              class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold shadow cursor-pointer">
-              &#8635; Sync Mock (${spec.code})
-            </button>
-            <button type="button" onclick="window.triggerProLearnerCheckout('Tab 7 Target Lock & Official 8-IIM PDF Dossier')"
-              class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow cursor-pointer">
-              &#127919; Set Target
-            </button>
+
+          <div class="space-y-3 pt-1 border-t border-slate-800">
+            ${sliders.map(sl => `
+              <div>
+                <div class="flex justify-between font-bold mb-1">
+                  <span class="text-slate-200">${sl.label}</span>
+                  <span class="text-emerald-400 font-extrabold">${t[sl.key]} <span class="text-slate-400 font-normal">${sl.unit} (Cutoff: ${sl.cutoff})</span></span>
+                </div>
+                <input type="range" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${t[sl.key]}"
+                  oninput="window.updateIpmT7Slider('${sl.key}', this.value)" class="w-full accent-emerald-500 cursor-pointer">
+              </div>
+            `).join("")}
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+            <div>
+              <label class="text-slate-400 font-bold">Class 10 Board %</label>
+              <input type="number" step="0.5" value="${t.c10}" onchange="window.updateIpmT7Slider('c10', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white">
+            </div>
+            <div>
+              <label class="text-slate-400 font-bold">Class 12 Board %</label>
+              <input type="number" step="0.5" value="${t.c12}" onchange="window.updateIpmT7Slider('c12', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white">
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="t7-math-chk" type="checkbox" ${t.hasMath ? "checked" : ""} onchange="window.updateIpmT7Slider('hasMath', this.checked)">
+            <label for="t7-math-chk" class="text-slate-300 font-semibold">Studied Mathematics in Class 12 (IIMB B.Sc. / IIMM BS)</label>
           </div>
         </div>
 
-        ${synced ? `
-          <div class="bg-slate-900/95 border border-indigo-500/40 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-              <div class="text-[10px] font-extrabold uppercase text-amber-400">Present Level (${synced.serialId})</div>
-              <div class="text-base font-extrabold text-white mt-0.5">${synced.score} / ${synced.maxScore} (${synced.accuracyPct || 0}% Acc)</div>
-              <div class="text-[11px] text-slate-400 mt-0.5">${synced.secSummary || synced.title}</div>
+        <!-- RIGHT PANEL: 3 KPI CARDS + ACHIEVEMENT VS DEFICIENCY MATRIX + 10-TRACK READINESS -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- 3-CARD KPI PREVIEW BANNER (MATCHING NEET/CAT) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
+              <div class="text-[10px] font-extrabold uppercase text-slate-400">TARGET PREVIEW (${spec.code})</div>
+              <div class="text-xl font-extrabold text-white mt-1">${primaryPreview}</div>
+              <div class="text-[11px] text-indigo-300 mt-0.5">${primarySub}</div>
             </div>
-            <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-700/40">
-              <div class="text-[10px] font-extrabold uppercase text-emerald-300">&#9989; Gauged Strengths</div>
-              <div class="text-emerald-100 mt-1">${(synced.strengths || []).join(" &bull; ")}</div>
+            <div class="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-700/40">
+              <div class="text-[10px] font-extrabold uppercase text-emerald-300">SHORTLIST READINESS</div>
+              <div class="text-xl font-extrabold text-emerald-400 mt-1">${readyCount} / 10 Tracks</div>
+              <div class="text-[11px] text-emerald-200 mt-0.5">9 IIMs + CUET-UG BMS</div>
             </div>
-            <div class="p-3 rounded-xl bg-rose-950/30 border border-rose-700/40">
-              <div class="text-[10px] font-extrabold uppercase text-rose-300">&#9888;&#65039; Gauged Deficiencies</div>
-              <div class="text-rose-100 mt-1">${(synced.deficiencies || []).join(" &bull; ")}</div>
-            </div>
-          </div>
-        ` : ""}
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3.5 text-xs">
-            <div class="font-extrabold uppercase tracking-wider text-indigo-400">Interactive What-If Score Simulator</div>
-            <div><div class="flex justify-between font-bold mb-1"><span>IPMAT Indore QA-SA (/60)</span><span class="text-amber-300">${s.indSa} / 60</span></div><input type="range" min="0" max="60" value="${s.indSa}" oninput="window.updateIpmT7Slider('indSa', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>IPMAT Indore QA-MCQ (/120)</span><span class="text-amber-300">${s.indMcq} / 120</span></div><input type="range" min="0" max="120" value="${s.indMcq}" oninput="window.updateIpmT7Slider('indMcq', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>IPMAT Indore Verbal Ability (/180)</span><span class="text-amber-300">${s.indVa} / 180</span></div><input type="range" min="0" max="180" value="${s.indVa}" oninput="window.updateIpmT7Slider('indVa', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>IPMAT Rohtak Composite (/480)</span><span class="text-cyan-300">${s.rohtak} / 480</span></div><input type="range" min="150" max="480" step="5" value="${s.rohtak}" oninput="window.updateIpmT7Slider('rohtak', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>JIPMAT Bodh Gaya &amp; Jammu (/400)</span><span class="text-emerald-300">${s.jipmat} / 400</span></div><input type="range" min="150" max="400" step="5" value="${s.jipmat}" oninput="window.updateIpmT7Slider('jipmat', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>IIM Bangalore UG Test (/300)</span><span class="text-purple-300">${s.iimbUg} / 300</span></div><input type="range" min="100" max="300" step="5" value="${s.iimbUg}" oninput="window.updateIpmT7Slider('iimbUg', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>IIM Kozhikode BMS Test (/400)</span><span class="text-teal-300">${s.iimkBms} / 400</span></div><input type="range" min="120" max="400" step="5" value="${s.iimkBms}" oninput="window.updateIpmT7Slider('iimkBms', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>CUET-UG Composite (GAT+Eng+Math /750)</span><span class="text-orange-300">${s.cuetScore} / 750</span></div><input type="range" min="300" max="750" step="5" value="${s.cuetScore}" oninput="window.updateIpmT7Slider('cuetScore', this.value)" class="w-full cursor-pointer"></div>
-            <div><div class="flex justify-between font-bold mb-1"><span>JEE Main %ile (IIM Mumbai BS)</span><span class="text-sky-300">${s.jeePct}%ile</span></div><input type="range" min="80" max="100" step="0.2" value="${s.jeePct}" oninput="window.updateIpmT7Slider('jeePct', this.value)" class="w-full cursor-pointer"></div>
-            <div class="grid grid-cols-2 gap-3 pt-1">
-              <div><label class="text-slate-400 font-bold">Class 10 %</label><input type="number" step="0.5" value="${s.c10}" onchange="window.updateIpmT7Slider('c10', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white"></div>
-              <div><label class="text-slate-400 font-bold">Class 12 %</label><input type="number" step="0.5" value="${s.c12}" onchange="window.updateIpmT7Slider('c12', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white"></div>
-            </div>
-            <div class="flex items-center gap-2 pt-1">
-              <input id="t7-math-chk" type="checkbox" ${s.hasMath ? "checked" : ""} onchange="window.updateIpmT7Slider('hasMath', this.checked)">
-              <label for="t7-math-chk" class="text-slate-300 font-semibold">Studied Mathematics in Class 12 (Mandatory for IIMB B.Sc. &amp; IIM Mumbai)</label>
+            <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
+              <div class="text-[10px] font-extrabold uppercase text-amber-300">EXPECTED CALL TIER</div>
+              <div class="text-sm font-extrabold text-white mt-1 leading-snug">${tierLabel}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">${t.lockedAt}</div>
             </div>
           </div>
 
-          <div class="lg:col-span-7 space-y-4">
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3 overflow-x-auto">
-              <div class="flex items-center justify-between">
-                <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">9-IIM Campus Shortlist &amp; Cutoff Deficiency Matrix</div>
-                <span class="text-[11px] text-slate-400">Active Campus: ${spec.shortLabel}</span>
+          <!-- ACHIEVEMENT VS. DEFICIENCY REMAINING MATRIX WITH COMPLETION BARS -->
+          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ACHIEVEMENT VS. DEFICIENCY REMAINING MATRIX</div>
+                <div class="text-[11px] text-slate-400">
+                  ${synced ? `Synced Mock: <strong class="font-mono text-amber-300">${synced.serialId}</strong> (${synced.score}/${synced.maxScore} • ${synced.accuracyPct}% Acc)` : "Complete a mock in Tab 4/5 & click Sync Mock to populate Actual Achievement"}
+                </div>
               </div>
-              <table class="w-full text-left border-collapse text-xs">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold text-slate-300">${fullMocksCount} Full Mocks Logged</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
                 <thead>
-                  <tr class="border-b border-slate-800 text-[11px] text-slate-400 uppercase">
-                    <th class="py-2 pr-2">IIM Campus &amp; Program</th>
-                    <th class="py-2 px-2">Projected Score</th>
-                    <th class="py-2 px-2">Diagnostic Note</th>
-                    <th class="py-2 pl-2 text-right">Call Status</th>
+                  <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                    <th class="py-2 pr-2">Section / Pillar</th>
+                    <th class="py-2 px-2">Locked Target</th>
+                    <th class="py-2 px-2">Achieved (Mock)</th>
+                    <th class="py-2 px-2">Deficiency / Surplus</th>
+                    <th class="py-2 pl-2">Completion</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/70">
-                  ${campuses.map(c => {
-                    const isFocused = c.key === spec.key;
-                    return `
-                    <tr class="${isFocused ? 'bg-indigo-950/40' : ''}">
-                      <td class="py-2.5 pr-2 font-bold text-white">
-                        ${c.name} ${isFocused ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 text-[9px] uppercase">Selected</span>' : ''}
-                        <div class="text-[10px] font-normal text-slate-400">${c.cutoff}</div>
+                  ${sectionRows.map(r => `
+                    <tr>
+                      <td class="py-2.5 pr-2 font-bold text-white">${r.label}</td>
+                      <td class="py-2.5 px-2 font-mono text-indigo-300">${r.target} / ${r.max}</td>
+                      <td class="py-2.5 px-2 font-mono font-bold text-white">${r.achieved !== null ? `${r.achieved} / ${r.max}` : "—"}</td>
+                      <td class="py-2.5 px-2 font-bold ${r.diff === null ? "text-slate-400" : r.diff >= 0 ? "text-emerald-400" : "text-rose-400"}">
+                        ${r.diff === null ? "Pending Mock" : r.diff >= 0 ? `+${r.diff} Surplus` : `${r.diff} Deficit`}
                       </td>
-                      <td class="py-2.5 px-2 font-mono text-indigo-300">${c.yourScore}</td>
-                      <td class="py-2.5 px-2 text-slate-300">${c.note}</td>
-                      <td class="py-2.5 pl-2 text-right">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                          c.eligible ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
-                        }">${c.eligible ? "CALL READY" : "GAP: -" + c.gap}</span>
+                      <td class="py-2.5 pl-2">
+                        <div class="flex items-center gap-2">
+                          <div class="w-20 h-2 rounded-full bg-slate-800 overflow-hidden">
+                            <div class="h-full bg-emerald-500" style="width:${r.pct}%"></div>
+                          </div>
+                          <span class="text-[10px] font-bold text-slate-300">${r.pct}%</span>
+                        </div>
                       </td>
                     </tr>
-                  `;}).join("")}
+                  `).join("")}
                 </tbody>
               </table>
             </div>
+          </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
-              <div class="flex items-center justify-between">
-                <span class="font-extrabold uppercase tracking-wider text-amber-400">Executed Mock Serial ID Logs (${hist.length})</span>
-                <span class="text-[11px] text-slate-400">Click any Serial ID to inspect strengths &amp; deficiencies</span>
-              </div>
-              ${hist.length ? `
-                <div class="flex flex-wrap gap-2">
-                  ${hist.slice(0, 10).map(h => `
-                    <button type="button" onclick="window.syncSpecificIpmMockToTab7('${h.serialId}')"
-                      class="px-3 py-1.5 rounded-xl border text-left transition cursor-pointer ${
-                        synced && synced.serialId === h.serialId
-                          ? "bg-amber-500/20 border-amber-400 text-amber-200 font-bold"
-                          : "bg-slate-950 border-slate-800 text-slate-300 hover:border-indigo-500"
-                      }">
-                      <div class="font-mono text-[11px] font-extrabold">${h.serialId}</div>
-                      <div class="text-[10px] text-slate-400">${h.score}/${h.maxScore} (${h.accuracyPct || 0}%)</div>
-                    </button>
-                  `).join("")}
-                </div>
-              ` : `<div class="text-[11px] text-slate-400">No mock logs yet. Execute a mock in Tab 4 or Tab 5 to populate Serial IDs here.</div>`}
+          <!-- ALL 9 IIMs + CUET-UG CAMPUS CALL MATRIX (SINGLE-LINE BADGES) -->
+          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 overflow-x-auto text-xs">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">9-IIM + CUET-UG Campus Shortlist Matrix</div>
+              <span class="text-[11px] text-slate-400">Highlighted: ${spec.shortLabel}</span>
             </div>
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                  <th class="py-2 pr-2">Campus / Program</th>
+                  <th class="py-2 px-2">Projected</th>
+                  <th class="py-2 px-2">Benchmark</th>
+                  <th class="py-2 pl-2 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/70">
+                ${campuses.map(c => {
+                  const isFocused = c.key === spec.key;
+                  return `
+                    <tr class="${isFocused ? "bg-indigo-950/40" : ""}">
+                      <td class="py-2 pr-2 font-bold text-white whitespace-nowrap">${c.name}</td>
+                      <td class="py-2 px-2 font-mono text-indigo-300 whitespace-nowrap">${c.score}</td>
+                      <td class="py-2 px-2 text-slate-400">${c.note}</td>
+                      <td class="py-2 pl-2 text-right whitespace-nowrap">
+                        <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap ${
+                          c.ok ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                        }">${c.ok ? "CALL READY" : "GAP: -" + c.gap}</span>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
