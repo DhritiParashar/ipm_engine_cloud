@@ -1379,35 +1379,71 @@
     const indTotal = t.indSa + t.indMcq + t.indVa;
     const indAts = ((t.indSa / 60) * 20 + (t.indMcq / 120) * 20 + (t.indVa / 180) * 25).toFixed(1);
 
-    let primaryPreview = `${draftIndTotal} / 360`;
-    let primarySub = `Locked: ${indTotal}/360 • ATS ${indAts}/65`;
-    let tierLabel = draftIndTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : draftIndTotal >= 175 ? "Strong PI Call Zone" : "Below Cutoff — Boost Sectional Score";
+    // Derive actual projected scores from syncedRecord when a mock is synced
+    const mockRatio = synced
+      ? Math.max(0, Number(synced.score || 0)) / Math.max(1, Number(synced.maxScore || 120))
+      : null;
+
+    const mSec = (synced && synced.secStats) || {};
+    const secRatioOrOverall = (k) => {
+      if (!synced) return null;
+      if (mSec[k] && mSec[k].total > 0) return Math.max(0, mSec[k].score) / (mSec[k].total * 4);
+      return mockRatio;
+    };
+
+    const actIndSa = synced ? Math.round(60 * secRatioOrOverall("QA-SA")) : null;
+    const actIndMcq = synced ? Math.round(120 * secRatioOrOverall("QA-MCQ")) : null;
+    const actIndVa = synced ? Math.round(180 * secRatioOrOverall("VARC")) : null;
+    const actIndTotal = synced ? (actIndSa + actIndMcq + actIndVa) : null;
+    const actIndAts = synced ? ((actIndSa / 60) * 20 + (actIndMcq / 120) * 20 + (actIndVa / 180) * 25).toFixed(1) : null;
+    const actRohtak = synced ? Math.round(480 * mockRatio) : null;
+    const actJipmat = synced ? Math.round(400 * mockRatio) : null;
+    const actIimb = synced ? Math.round(300 * mockRatio) : null;
+    const actIimk = synced ? Math.round(400 * mockRatio) : null;
+    const actCuet = synced ? Math.round(750 * mockRatio) : null;
+    const actJee = synced ? +(75 + 24.5 * mockRatio).toFixed(1) : null;
+
+    // Effective scores used for Shortlist Matrix & KPI Banner: Actual Mock when synced, Locked Target otherwise
+    const effIndSa = synced ? actIndSa : t.indSa;
+    const effIndMcq = synced ? actIndMcq : t.indMcq;
+    const effIndVa = synced ? actIndVa : t.indVa;
+    const effIndTotal = synced ? actIndTotal : indTotal;
+    const effRohtak = synced ? actRohtak : t.rohtak;
+    const effJipmat = synced ? actJipmat : t.jipmat;
+    const effIimb = synced ? actIimb : t.iimbUg;
+    const effIimk = synced ? actIimk : t.iimkBms;
+    const effCuet = synced ? actCuet : t.cuetScore;
+    const effJee = synced ? actJee : t.jeePct;
+
+    let primaryPreview = synced ? `${actIndTotal} / 360` : `${draftIndTotal} / 360`;
+    let primarySub = synced ? `Actual Mock Projection (${synced.serialId}) • Target: ${indTotal}/360` : `Target Simulation • ATS ${indAts}/65`;
+    let tierLabel = effIndTotal >= 195 ? "Top-100 IIM Indore & Ranchi Shortlist" : effIndTotal >= 175 ? "Strong PI Call Zone" : `Below Cutoff (Need +${180 - effIndTotal} Marks)`;
 
     if (spec.key === "ROHTAK") {
-      primaryPreview = `${d.rohtak} / 480`;
-      primarySub = `Locked: ${t.rohtak}/480 • Acad ${(((d.c10 + d.c12) / 200) * 30).toFixed(1)}/30`;
-      tierLabel = d.rohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - d.rohtak} Marks for PI Call`;
+      primaryPreview = synced ? `${actRohtak} / 480` : `${d.rohtak} / 480`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.rohtak}/480` : `Target Simulation • Acad ${(((d.c10 + d.c12) / 200) * 30).toFixed(1)}/30`;
+      tierLabel = effRohtak >= 390 ? "IIM Rohtak General PI Call Ready" : `Need +${390 - effRohtak} Marks for PI Call`;
     } else if (spec.key === "BODHGAYA" || spec.key === "JAMMU") {
       const bar = spec.key === "BODHGAYA" ? 315 : 310;
-      primaryPreview = `${d.jipmat} / 400`;
-      primarySub = `Locked: ${t.jipmat}/400 • NTA JIPMAT`;
-      tierLabel = d.jipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - d.jipmat} Marks in JIPMAT`;
+      primaryPreview = synced ? `${actJipmat} / 400` : `${d.jipmat} / 400`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.jipmat}/400` : `Target Simulation • NTA JIPMAT`;
+      tierLabel = effJipmat >= bar ? `${spec.shortLabel} Direct Merit List 1` : `Need +${bar - effJipmat} Marks in JIPMAT`;
     } else if (spec.key === "BANGALORE") {
-      primaryPreview = `${d.iimbUg} / 300`;
-      primarySub = `Locked: ${t.iimbUg}/300 • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
-      tierLabel = d.hasMath && d.iimbUg >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : "Check Class 12 Math / 235+ Target";
+      primaryPreview = synced ? `${actIimb} / 300` : `${d.iimbUg} / 300`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.iimbUg}/300` : `Target Simulation • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
+      tierLabel = d.hasMath && effIimb >= 235 ? "IIMB B.Sc. Econ/DS & BBA DBE PI Ready" : `Need +${Math.max(0, 235 - effIimb)} Marks (235+ Cutoff)`;
     } else if (spec.key === "MUMBAI") {
-      primaryPreview = `${d.jeePct}%ile`;
-      primarySub = `Locked: ${t.jeePct}%ile • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
-      tierLabel = d.hasMath && d.jeePct >= 96.0 ? "IIM Mumbai 4-Yr BS Shortlist Zone" : "Target ≥96.0%ile + Class 12 Math";
+      primaryPreview = synced ? `${actJee}%ile` : `${d.jeePct}%ile`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.jeePct}%ile` : `Target Simulation • Class 12 Math: ${d.hasMath ? "Yes" : "No"}`;
+      tierLabel = d.hasMath && effJee >= 96.0 ? "IIM Mumbai 4-Yr BS Shortlist Zone" : "Target ≥96.0%ile + Class 12 Math";
     } else if (spec.key === "KOZHIKODE") {
-      primaryPreview = `${d.iimkBms} / 400`;
-      primarySub = `Locked: ${t.iimkBms}/400 • 4-Yr BMS Hons`;
-      tierLabel = d.iimkBms >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - d.iimkBms} Marks in IIMK Test`;
+      primaryPreview = synced ? `${actIimk} / 400` : `${d.iimkBms} / 400`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.iimkBms}/400` : `Target Simulation • 4-Yr BMS Hons`;
+      tierLabel = effIimk >= 240 ? "IIM Kozhikode BMS PI Call Zone" : `Need +${240 - effIimk} Marks in IIMK Test`;
     } else if (spec.key === "CUET") {
-      primaryPreview = `${d.cuetScore} / 750`;
-      primarySub = `Locked: ${t.cuetScore}/750 • GAT + Eng + Math`;
-      tierLabel = d.cuetScore >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - d.cuetScore} Marks for Top-Tier BMS`;
+      primaryPreview = synced ? `${actCuet} / 750` : `${d.cuetScore} / 750`;
+      primarySub = synced ? `Mock Projection (${synced.serialId}) • Target: ${t.cuetScore}/750` : `Target Simulation • GAT + Eng + Math`;
+      tierLabel = effCuet >= 650 ? "99+%ile SSCBS BMS / BBA-FIA & IIM UG" : `Need +${650 - effCuet} Marks for Top-Tier BMS`;
     }
 
     const secStats = (synced && synced.secStats) || {};
@@ -1475,16 +1511,16 @@
     });
 
     const campuses = [
-      { key: "INDORE", name: "IIM Indore (5-Yr IPM)", score: `${indTotal}/360 (ATS ${indAts}/65)`, gap: Math.max(0, 180 - indTotal), ok: t.indSa >= 24 && t.indMcq >= 40 && t.indVa >= 116, note: "SA ≥24 • MCQ ≥40 • VA ≥116" },
-      { key: "RANCHI", name: "IIM Ranchi (5-Yr IPM)", score: `${indTotal}/360`, gap: Math.max(0, 172 - indTotal), ok: indTotal >= 172, note: "Composite ≥172 + 20% Acads" },
-      { key: "ROHTAK", name: "IIM Rohtak (5-Yr IPM)", score: `${t.rohtak}/480`, gap: Math.max(0, 390 - t.rohtak), ok: t.rohtak >= 390, note: "Score ≥390 + 30% Acads" },
-      { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", score: `${t.jipmat}/400`, gap: Math.max(0, 315 - t.jipmat), ok: t.jipmat >= 315, note: "JIPMAT ≥315 (No PI)" },
-      { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", score: `${t.jipmat}/400`, gap: Math.max(0, 310 - t.jipmat), ok: t.jipmat >= 310, note: "JIPMAT ≥310 + Diversity" },
-      { key: "BANGALORE", name: "IIM Bangalore (B.Sc. / BBA)", score: `${t.iimbUg}/300`, gap: Math.max(0, 235 - t.iimbUg), ok: t.hasMath && t.iimbUg >= 235, note: "≥235 + Class 12 Math" },
-      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS)", score: `${t.jeePct}%ile`, gap: Math.max(0, +(96.0 - t.jeePct).toFixed(1)), ok: t.hasMath && t.jeePct >= 96.0, note: "≥96.0%ile + Class 12 Math" },
-      { key: "KOZHIKODE", name: "IIM Kozhikode (4-Yr BMS)", score: `${t.iimkBms}/400`, gap: Math.max(0, 240 - t.iimkBms), ok: t.iimkBms >= 240, note: "IIMK BMS ≥240 + PI" },
-      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr UG)", score: `${((t.c10 + t.c12) / 2).toFixed(1)}% Acads`, gap: 0, ok: t.hasMath && t.c10 >= 85 && t.c12 >= 85, note: "85%+ Acads + Class 12 Math" },
-      { key: "CUET", name: "CUET-UG (SSCBS / Top BMS)", score: `${t.cuetScore}/750`, gap: Math.max(0, 650 - t.cuetScore), ok: t.cuetScore >= 650, note: "≥650/750 (99+%ile NTA)" }
+      { key: "INDORE", name: "IIM Indore (5-Yr IPM)", targetDisp: `${indTotal}/360`, mockDisp: synced ? `${actIndTotal}/360 (ATS ${actIndAts})` : "Pending Mock", gap: Math.max(0, 180 - effIndTotal), ok: effIndSa >= 24 && effIndMcq >= 40 && effIndVa >= 116, note: "SA ≥24 • MCQ ≥40 • VA ≥116" },
+      { key: "RANCHI", name: "IIM Ranchi (5-Yr IPM)", targetDisp: `${indTotal}/360`, mockDisp: synced ? `${actIndTotal}/360` : "Pending Mock", gap: Math.max(0, 172 - effIndTotal), ok: effIndTotal >= 172, note: "Composite ≥172 + 20% Acads" },
+      { key: "ROHTAK", name: "IIM Rohtak (5-Yr IPM)", targetDisp: `${t.rohtak}/480`, mockDisp: synced ? `${actRohtak}/480` : "Pending Mock", gap: Math.max(0, 390 - effRohtak), ok: effRohtak >= 390, note: "Score ≥390 + 30% Acads" },
+      { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", targetDisp: `${t.jipmat}/400`, mockDisp: synced ? `${actJipmat}/400` : "Pending Mock", gap: Math.max(0, 315 - effJipmat), ok: effJipmat >= 315, note: "JIPMAT ≥315 (No PI)" },
+      { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", targetDisp: `${t.jipmat}/400`, mockDisp: synced ? `${actJipmat}/400` : "Pending Mock", gap: Math.max(0, 310 - effJipmat), ok: effJipmat >= 310, note: "JIPMAT ≥310 + Diversity" },
+      { key: "BANGALORE", name: "IIM Bangalore (B.Sc. / BBA)", targetDisp: `${t.iimbUg}/300`, mockDisp: synced ? `${actIimb}/300` : "Pending Mock", gap: Math.max(0, 235 - effIimb), ok: t.hasMath && effIimb >= 235, note: "≥235 + Class 12 Math" },
+      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS)", targetDisp: `${t.jeePct}%ile`, mockDisp: synced ? `${actJee}%ile` : "Pending Mock", gap: Math.max(0, +(96.0 - effJee).toFixed(1)), ok: t.hasMath && effJee >= 96.0, note: "≥96.0%ile + Class 12 Math" },
+      { key: "KOZHIKODE", name: "IIM Kozhikode (4-Yr BMS)", targetDisp: `${t.iimkBms}/400`, mockDisp: synced ? `${actIimk}/400` : "Pending Mock", gap: Math.max(0, 240 - effIimk), ok: effIimk >= 240, note: "IIMK BMS ≥240 + PI" },
+      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr UG)", targetDisp: `${((t.c10 + t.c12) / 2).toFixed(1)}% Acads`, mockDisp: synced ? `${actIndTotal}/360 + Acads` : "Pending Mock", gap: 0, ok: t.hasMath && t.c10 >= 85 && t.c12 >= 85 && (!synced || effIndTotal >= 175), note: "85%+ Acads + Quant" },
+      { key: "CUET", name: "CUET-UG (SSCBS / Top BMS)", targetDisp: `${t.cuetScore}/750`, mockDisp: synced ? `${actCuet}/750` : "Pending Mock", gap: Math.max(0, 650 - effCuet), ok: effCuet >= 650, note: "≥650/750 (99+%ile NTA)" }
     ];
 
     const readyCount = campuses.filter(c => c.ok).length;
@@ -1559,12 +1595,12 @@
           <div class="lg:col-span-7 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800">
-                <div class="text-[10px] font-extrabold uppercase text-slate-400">DRAFT VS LOCKED (${spec.code})</div>
+                <div class="text-[10px] font-extrabold uppercase text-slate-400">${synced ? `ACTUAL MOCK PROJECTION (${synced.serialId})` : `DRAFT TARGET PREVIEW (${spec.code})`}</div>
                 <div class="text-xl font-extrabold text-white mt-1">${primaryPreview}</div>
                 <div class="text-[11px] text-indigo-300 mt-0.5">${primarySub}</div>
               </div>
               <div class="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-700/40">
-                <div class="text-[10px] font-extrabold uppercase text-emerald-300">LOCKED SHORTLIST READINESS</div>
+                <div class="text-[10px] font-extrabold uppercase text-emerald-300">${synced ? "ACTUAL MOCK SHORTLIST READINESS" : "TARGET SIMULATION READINESS"}</div>
                 <div class="text-xl font-extrabold text-emerald-400 mt-1">${readyCount} / 10 Tracks</div>
                 <div class="text-[11px] text-emerald-200 mt-0.5">9 IIMs + CUET-UG BMS</div>
               </div>
@@ -1629,7 +1665,7 @@
 
             <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3 overflow-x-auto text-xs">
               <div class="flex items-center justify-between">
-                <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">9-IIM + CUET-UG Campus Shortlist Matrix (Based on Locked Target)</div>
+                <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">9-IIM + CUET-UG Campus Shortlist Matrix (${synced ? `Evaluated on Mock ${synced.serialId}` : "Unverified Target Preview — Sync a Mock"})</div>
                 <span class="text-[11px] text-slate-400">Highlighted: ${spec.shortLabel}</span>
               </div>
               <table class="w-full text-left border-collapse">
@@ -1637,6 +1673,7 @@
                   <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
                     <th class="py-2 pr-2">Campus / Program</th>
                     <th class="py-2 px-2">Locked Target</th>
+                    <th class="py-2 px-2">Mock Projected</th>
                     <th class="py-2 px-2">Benchmark</th>
                     <th class="py-2 pl-2 text-right">Status</th>
                   </tr>
@@ -1647,7 +1684,8 @@
                     return `
                       <tr class="${isFocused ? "bg-indigo-950/40" : ""}">
                         <td class="py-2 pr-2 font-bold text-white whitespace-nowrap">${c.name}</td>
-                        <td class="py-2 px-2 font-mono text-indigo-300 whitespace-nowrap">${c.score}</td>
+                        <td class="py-2 px-2 font-mono text-indigo-300 whitespace-nowrap">${c.targetDisp}</td>
+                        <td class="py-2 px-2 font-mono font-bold ${synced ? "text-emerald-300" : "text-slate-400"} whitespace-nowrap">${c.mockDisp}</td>
                         <td class="py-2 px-2 text-slate-400">${c.note}</td>
                         <td class="py-2 pl-2 text-right whitespace-nowrap">
                           <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap ${
