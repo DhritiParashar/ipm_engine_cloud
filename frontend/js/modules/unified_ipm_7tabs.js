@@ -75,7 +75,7 @@
       marking: "MCQ +4/-1 | SA +4/0 | 20% 10th/12th Weight",
       note: "Evaluates overall IPMAT Indore composite (~172+ General) with 20% academic weightage and 30% PI.",
       practiceSections: [
-        { title: "Ranchi Score Booster: QA-SA (+4/0)", section: "QUANT_SA", suffix: "SA", qCount: 15, mins: 25, badge: "NO SECTIONAL BAR", desc: "Maximize risk-free SA marks to push total IPMAT composite above 172+." },
+        { title: "Ranchi Score Booster: QA-SA (+4/0)", section: "QUANT_SA", suffix: "SA", qCount: 15, mins: 25, badge: "RANCHI QA-SA (+4/0)", desc: "Maximize risk-free SA marks to push total IPMAT composite above 172+." },
         { title: "Ranchi Quant MCQ Drill (+4/-1)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "QUANT +4/-1", desc: "High-yield Arithmetic & Algebra sets for overall composite gain." },
         { title: "Ranchi Verbal Ability Maximizer", section: "VARC", suffix: "VA", qCount: 15, mins: 15, badge: "VERBAL +4/-1", desc: "Fast RC & Vocabulary scoring sprint for non-sectional-bar merit." },
         { title: "Ranchi 172+ Composite Drill", section: "", suffix: "COMP", qCount: 18, mins: 25, badge: "RANCHI TARGET", desc: "Mixed Indore-pattern drill tuned for Ranchi shortlist cutoff." }
