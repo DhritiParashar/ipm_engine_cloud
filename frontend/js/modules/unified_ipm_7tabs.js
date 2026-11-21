@@ -803,7 +803,7 @@
                 Clear Response
               </button>
               <button type="button" onclick="window.markReviewAndNextPgMock()"
-                class="px-3.5 py-2 rounded-xl bg-purple-600/25 hover:bg-purple-600/35 border border-purple-500/40 text-xs font-bold text-purple-200 cursor-pointer">
+                class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 border border-purple-500 text-xs font-extrabold text-white shadow cursor-pointer">
                 &#128278; Mark for Review &amp; Next
               </button>
               <button type="button" onclick="window.saveAndNextPgMock()"
@@ -818,7 +818,7 @@
                 const cls = qi === idx
                   ? "bg-amber-500 text-slate-950 ring-2 ring-amber-300"
                   : marked
-                    ? "bg-purple-600/40 text-purple-200 border border-purple-400"
+                    ? "bg-purple-600 text-white border border-purple-500"
                     : ansd
                       ? "bg-emerald-600/40 text-emerald-200 border border-emerald-500/40"
                       : "bg-slate-950 text-slate-400 border border-slate-800";
