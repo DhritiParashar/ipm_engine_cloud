@@ -1767,7 +1767,7 @@
     `;
   };
 
-  // TAB 8: Split-Screen Trap Doctor & AI Doubts (Curated Databank Free + Live Gemini AI PRO v42)
+  // TAB 8: Full-Width Trap Doctor + Curated 28 Stuck-Points & Live Gemini AI Solver (v43)
   window.isIpmProTierActive = function () {
     if (window.IS_PRO_LEARNER === true) return true;
     const hdr = document.body ? document.body.innerText || "" : "";
@@ -1793,9 +1793,10 @@
 
     const outEl = document.getElementById("ipm-gemini-pro-reply");
     const customInput = document.getElementById("ipm-gemini-custom-q");
-    const activeCard = document.querySelector("#ipm-t8-right .font-semibold.text-slate-100, #ipm-t8-right h4, #ipm-t8-right p");
-    const stuckTitle = activeCard ? (activeCard.textContent || "").trim().slice(0, 220) : "IPM Quantitative & Verbal Conceptual Stuck-Point";
-    const userQ = customPromptOverride || (customInput && customInput.value.trim()) || `Provide a deep-dive step-by-step explanation, alternative 20-second shortcut, and common examiner trap for: ${stuckTitle}`;
+    const solverPane = document.getElementById("ipm-t8-doubt-workspace");
+    const activeQ = solverPane ? solverPane.querySelector("h3, h4, .font-semibold") : null;
+    const stuckTitle = activeQ ? (activeQ.textContent || "").trim().slice(0, 240) : "IPM Quantitative & Verbal Conceptual Stuck-Point";
+    const userQ = customPromptOverride || (customInput && customInput.value.trim()) || `Explain this IPMAT / IIM UG conceptual stuck-point step-by-step with a 20-second shortcut and trap check:\n${stuckTitle}`;
 
     if (outEl) {
       outEl.classList.remove("hidden");
@@ -1812,18 +1813,23 @@
       const ans = data.answer || data.reply || data.solution || "Gemini Live AI analysis generated. Verify domain constraints and +4/-1 risk.";
       if (outEl) {
         outEl.innerHTML = `
-          <div class="text-[10px] font-extrabold uppercase text-amber-300 mb-1">&#10024; GEMINI LIVE AI TUTOR RESPONSE (PRO TIER)</div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] font-extrabold uppercase text-amber-300">&#10024; GEMINI LIVE AI TUTOR RESPONSE (PRO TIER)</span>
+            <button type="button" onclick="document.getElementById('ipm-gemini-pro-reply').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs font-bold">&times;</button>
+          </div>
           <div class="text-xs text-slate-100 whitespace-pre-line leading-relaxed">${ans}</div>
         `;
       }
     } catch (e) {
       if (outEl) {
-        outEl.innerHTML = `<div class="text-xs text-rose-300">Gemini endpoint offline (${e.message}). Curated Databank solution above remains active.</div>`;
+        outEl.innerHTML = `<div class="text-xs text-rose-300">Gemini endpoint offline (${e.message}). Curated Databank solution below remains active.</div>`;
       }
     }
   };
 
   window.askIpmTrapDoctor = function (title, detail) {
+    const targetBox = document.getElementById("ipm-t8-doubt-workspace");
+    if (targetBox) targetBox.scrollIntoView({ behavior: "smooth", block: "start" });
     if (window.isIpmProTierActive()) {
       window.escalateStuckPointToGemini(`Explain this IPMAT / IIM UG exam trap with a worked example and 30-second antidote:\n${title} — ${detail}`);
       return;
@@ -1833,58 +1839,65 @@
     }
   };
 
-  function injectTab8TierAnnouncementAndGeminiBar(rightEl) {
-    if (!rightEl || rightEl.querySelector(".ipm-t8-tier-banner")) return;
+  function buildTab8TierBannerHtml() {
     const isPro = window.isIpmProTierActive();
-    const banner = document.createElement("div");
-    banner.className = "ipm-t8-tier-banner mb-3 p-3.5 rounded-2xl border text-xs space-y-2.5 " + (
-      isPro
-        ? "bg-indigo-950/50 border-indigo-500/40 text-indigo-100"
-        : "bg-slate-900/95 border-amber-500/40 text-slate-200"
-    );
-
-    banner.innerHTML = isPro ? `
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold uppercase">&#10024; PRO TIER ACTIVE • CURATED DATABANK + GEMINI LIVE AI</span>
-        <span class="text-[11px] text-emerald-300 font-bold">28 Curated Solutions + Live Gemini Unlocked</span>
+    return isPro ? `
+      <div class="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 text-xs space-y-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold uppercase">&#10024; PRO TIER ACTIVE • CURATED DATABANK + GEMINI LIVE AI</span>
+          <span class="text-[11px] text-emerald-300 font-bold">28 Curated Databank Solutions + Live Gemini AI Unlocked</span>
+        </div>
+        <p class="text-[11px] text-slate-300">Click any of the <strong>28 Curated Conceptual Stuck-Points</strong> below to view its instant Databank <strong>Hint</strong>, <strong>30-Sec Shortcut</strong>, and <strong>Full Proof</strong>—or ask a custom follow-up via <strong>Gemini Live AI Tutor</strong>:</p>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input id="ipm-gemini-custom-q" type="text" placeholder="Ask Gemini AI a follow-up or paste any IPMAT / JIPMAT / CUET-UG doubt..."
+            class="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white" />
+          <button type="button" onclick="window.escalateStuckPointToGemini()"
+            class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow cursor-pointer shrink-0">
+            &#10024; Ask Gemini AI (PRO)
+          </button>
+        </div>
+        <div id="ipm-gemini-pro-reply" class="hidden p-3.5 rounded-xl bg-slate-950 border border-indigo-500/40"></div>
       </div>
-      <p class="text-[11px] text-slate-300">Inspect any of the <strong>28 Curated Conceptual Stuck-Points</strong> from the databank below, or escalate any doubt / custom question directly to <strong>Gemini Live AI Tutor</strong>.</p>
-      <div class="flex flex-col sm:flex-row gap-2">
-        <input id="ipm-gemini-custom-q" type="text" placeholder="Ask Gemini AI a follow-up or paste any IPMAT/JIPMAT/CUET doubt..."
-          class="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white" />
-        <button type="button" onclick="window.escalateStuckPointToGemini()"
-          class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow cursor-pointer shrink-0">
-          &#10024; Ask Gemini AI (PRO)
-        </button>
-      </div>
-      <div id="ipm-gemini-pro-reply" class="hidden p-3 rounded-xl bg-slate-950 border border-indigo-500/40"></div>
     ` : `
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold uppercase">&#128218; FREE TIER • 28 CURATED DATABANK SOLUTIONS</span>
-        <button type="button" onclick="window.triggerProLearnerCheckout('Gemini Live AI Doubt Solver')"
-          class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-extrabold cursor-pointer">
-          Unlock Gemini Live AI (PRO) &rarr;
-        </button>
+      <div class="p-4 rounded-2xl bg-slate-900/95 border border-amber-500/40 text-xs space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold uppercase">&#128218; FREE TIER • 28 CURATED DATABANK SOLUTIONS</span>
+          <button type="button" onclick="window.triggerProLearnerCheckout('Gemini Live AI Doubt Solver')"
+            class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-extrabold cursor-pointer">
+            Unlock Gemini Live AI (PRO) &rarr;
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-300">All <strong>28 Curated Conceptual Stuck-Points</strong> display full databank <strong>Socratic Hints</strong>, <strong>30-Second Shortcuts</strong> &amp; <strong>Full Proofs</strong> free. Upgrade to <strong>PRO Tier</strong> to ask custom questions or escalate doubts to <strong>Gemini Live AI</strong>.</p>
       </div>
-      <p class="text-[11px] text-slate-300">All <strong>28 Curated Conceptual Stuck-Points</strong> include full databank Hints, 30-Sec Shortcuts &amp; Proofs free. Upgrade to <strong>PRO Tier</strong> to ask custom follow-ups via <strong>Gemini Live AI</strong>.</p>
     `;
-
-    rightEl.insertBefore(banner, rightEl.firstChild);
   }
 
   window.renderTab8 = function (el) {
     el.innerHTML = `
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <div id="ipm-t8-left" class="lg:col-span-7 space-y-4"></div>
-        <div id="ipm-t8-right" class="lg:col-span-5 space-y-4 lg:sticky lg:top-24"></div>
+      <div class="space-y-6">
+        <!-- SECTION 1: FULL-WIDTH CURATED CONCEPTUAL STUCK-POINTS (28 DOUBTS) + SOCRATIC & GEMINI SOLVER -->
+        <div id="ipm-t8-doubt-workspace" class="space-y-3">
+          ${buildTab8TierBannerHtml()}
+          <div id="ipm-t8-doubt-inner"></div>
+        </div>
+
+        <!-- SECTION 2: EXAMINER TRAP DOCTOR (56 HIGH-FREQUENCY TRAPS) -->
+        <div id="ipm-t8-trap-workspace" class="pt-4 border-t border-slate-800 space-y-3">
+          <div id="ipm-t8-trap-inner"></div>
+        </div>
       </div>
     `;
-    const left = document.getElementById("ipm-t8-left");
-    const right = document.getElementById("ipm-t8-right");
+
+    const doubtInner = document.getElementById("ipm-t8-doubt-inner");
+    const trapInner = document.getElementById("ipm-t8-trap-inner");
+
+    if (typeof origRenderTab7Doubt === "function") {
+      origRenderTab7Doubt(doubtInner);
+    }
     if (typeof origRenderTab4Trap === "function") {
-      origRenderTab4Trap(left);
+      origRenderTab4Trap(trapInner);
       setTimeout(() => {
-        left.querySelectorAll("h3").forEach(h => {
+        trapInner.querySelectorAll("h3").forEach(h => {
           const card = h.closest("div.rounded-2xl");
           if (card && !card.querySelector(".ipm-ask-trap-btn")) {
             const titleText = (h.textContent || "").trim();
@@ -1899,10 +1912,6 @@
           }
         });
       }, 40);
-    }
-    if (typeof origRenderTab7Doubt === "function") {
-      origRenderTab7Doubt(right);
-      setTimeout(() => injectTab8TierAnnouncementAndGeminiBar(right), 40);
     }
   };
 })();
