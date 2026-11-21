@@ -1621,16 +1621,28 @@
             </div>
 
             <div class="space-y-3 pt-1 border-t border-slate-800">
-              ${sliders.map(sl => `
-                <div>
-                  <div class="flex justify-between font-bold mb-1">
-                    <span class="text-slate-200">${sl.label}</span>
-                    <span class="text-emerald-400 font-extrabold">${d[sl.key]} <span class="text-slate-400 font-normal">${sl.unit} (Locked: ${t[sl.key]})</span></span>
+              ${sliders.map(sl => {
+                const isModified = d[sl.key] !== t[sl.key];
+                return `
+                  <div>
+                    <div class="flex flex-wrap items-baseline justify-between gap-1 font-bold mb-1">
+                      <span class="text-slate-200">${sl.label}</span>
+                      <span class="text-emerald-400 font-extrabold font-mono">
+                        ${d[sl.key]} <span class="text-slate-400 font-normal">${sl.unit.replace("/", "/ ")}</span>
+                        <span class="ml-1.5 text-[10px] font-semibold text-amber-300">Cutoff: ${sl.cutoff}</span>
+                        <span class="ml-1 text-[10px] font-semibold ${isModified ? "text-amber-400" : "text-indigo-300"}">&bull; Locked: ${t[sl.key]}</span>
+                      </span>
+                    </div>
+                    <input type="range" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${d[sl.key]}"
+                      oninput="window.updateIpmT7Slider('${sl.key}', this.value)" class="w-full accent-emerald-500 cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-400 font-mono mt-0.5">
+                      <span>Min: ${sl.min}</span>
+                      <span class="text-amber-400/90 font-semibold">Cutoff: ${sl.cutoff}</span>
+                      <span>Max: ${sl.max}</span>
+                    </div>
                   </div>
-                  <input type="range" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${d[sl.key]}"
-                    oninput="window.updateIpmT7Slider('${sl.key}', this.value)" class="w-full accent-emerald-500 cursor-pointer">
-                </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
