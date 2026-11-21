@@ -52,7 +52,7 @@
       mins: 38,
       pattern: "90 Qs (15 SA + 30 MCQ + 45 VA) | 120 Mins",
       marking: "MCQ +4/-1 | QA-SA +4/0 (Zero Penalty)",
-      note: "Strict 40-min sectional timers & cutoffs (SA â‰¥24, MCQ â‰¥40, VA â‰¥116) + 35% Personal Interview.",
+      note: "Strict 40-min sectional timers & cutoffs (SA &ge;24, MCQ &ge;40, VA &ge;116) + 35% Personal Interview.",
       practiceSections: [
         { title: "Indore QA-SA (Zero Penalty)", section: "QUANT_SA", suffix: "SA", qCount: 15, mins: 25, badge: "INDORE SEC 1 (+4/0)", desc: "Exact 15-Q Short Answer numeric drill with zero negative marking." },
         { title: "Indore QA-MCQ & Higher Math", section: "QUANT_MCQ", suffix: "MCQ", qCount: 15, mins: 22, badge: "INDORE SEC 2 (+4/-1)", desc: "Logarithms, Matrices, Functions, Sequences & Number Theory." },
@@ -120,7 +120,7 @@
         { title: "JIPMAT Quantitative Aptitude (33-Q)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "NTA JIPMAT QA", desc: "Arithmetic, Ratios, Percentages, Time-Speed-Distance & Geometry." },
         { title: "JIPMAT DI & Logical Reasoning (33-Q)", section: "DILR", suffix: "DILR", qCount: 15, mins: 22, badge: "NTA JIPMAT DILR", desc: "Tables, Bar/Pie DI, Blood Relations, Series & Seating Puzzles." },
         { title: "JIPMAT VARC & Grammar (34-Q)", section: "VARC", suffix: "VARC", qCount: 15, mins: 20, badge: "NTA JIPMAT VARC", desc: "RC Passages, Idioms, Active/Passive, Error Spotting & Vocab." },
-        { title: "Bodh Gaya 315+ Direct Merit Drill", section: "", suffix: "MERIT", qCount: 20, mins: 28, badge: "NO PI â€¢ 100% CBT", desc: "Mixed JIPMAT simulation calibrated to Bodh Gaya Merit List 1." }
+        { title: "Bodh Gaya 315+ Direct Merit Drill", section: "", suffix: "MERIT", qCount: 20, mins: 28, badge: "NO PI &bull; 100% CBT", desc: "Mixed JIPMAT simulation calibrated to Bodh Gaya Merit List 1." }
       ]
     },
     {
@@ -138,10 +138,10 @@
       marking: "MCQ +4/-1 | JIPMAT Merit + Diversity Weight",
       note: "Direct admission via NTA JIPMAT score (~310+/400 General) plus gender diversity points.",
       practiceSections: [
-        { title: "JIPMAT Quantitative Aptitude (33-Q)", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 22, badge: "NTA JIPMAT QA", desc: "Arithmetic, Profit-Loss, Mensuration & Number System drills." },
-        { title: "JIPMAT DI & Logical Reasoning (33-Q)", section: "DILR", suffix: "DILR", qCount: 15, mins: 22, badge: "NTA JIPMAT DILR", desc: "Caselet DI, Venn Diagrams, Directions & Analytical Puzzles." },
-        { title: "JIPMAT VARC & Comprehension (34-Q)", section: "VARC", suffix: "VARC", qCount: 15, mins: 20, badge: "NTA JIPMAT VARC", desc: "Reading Comprehension, Sentence Correction & Confusable Words." },
-        { title: "IIM Jammu 310+ Merit Sprint", section: "", suffix: "MERIT", qCount: 20, mins: 28, badge: "JAMMU CUTOFF", desc: "Full JIPMAT pattern sprint tuned for IIM Jammu admission cutoff." }
+        { title: "Jammu Speed Quant & Commercial Math", section: "QUANT_MCQ", suffix: "QA", qCount: 15, mins: 20, badge: "JAMMU QA SPRINT", desc: "High-accuracy Profit-Loss, SI/CI, Mixtures & Mensuration sets." },
+        { title: "Jammu Analytical Puzzles & Caselet DI", section: "DILR", suffix: "DILR", qCount: 15, mins: 20, badge: "JAMMU DILR SPRINT", desc: "Rapid Venn Diagrams, Blood Relations, Directions & Table DI." },
+        { title: "Jammu RC & Idiomatic Usage Drill", section: "VARC", suffix: "VARC", qCount: 15, mins: 18, badge: "JAMMU VARC SPRINT", desc: "Reading Comprehension, Sentence Improvement & Confusable Words." },
+        { title: "IIM Jammu 310+ Merit List 1 Mock", section: "", suffix: "MERIT", qCount: 20, mins: 26, badge: "JAMMU MERIT LIST 1", desc: "20-Q calibrated JIPMAT sprint targeting IIM Jammu Merit List 1 cutoff." }
       ]
     },
     {
@@ -355,14 +355,14 @@
       strengths.push(
         topPos
           ? `${topPos.sec} (${topPos.acc}% â€” build above 70% for call safety)`
-          : "No section â‰¥60% yet â€” focus on accuracy & eliminating negative-marking guesses"
+          : "No section &ge;60% yet â€” focus on accuracy & eliminating negative-marking guesses"
       );
     }
 
     return {
       strengths,
-      deficiencies: deficiencies.length ? deficiencies : ["All sections â‰¥60% â€” tighten speed & negative-marking control"],
-      secSummary: ranked.map(r => `${r.sec}: ${r.score}/${r.max}`).join(" â€¢ ")
+      deficiencies: deficiencies.length ? deficiencies : ["All sections &ge;60% â€” tighten speed & negative-marking control"],
+      secSummary: ranked.map(r => `${r.sec}: ${r.score}/${r.max}`).join(" &bull; ")
     };
   }
 
@@ -419,7 +419,7 @@
 <body style="font-family:system-ui,-apple-system,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#0f172a;">
   <div style="border-bottom:2px solid #4f46e5;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
     <div>
-      <div style="font-size:11px;font-weight:800;color:#4f46e5;text-transform:uppercase;">GOALisB IIM UG &amp; IPM Master Engine â€¢ Official Diagnostic Dossier</div>
+      <div style="font-size:11px;font-weight:800;color:#4f46e5;text-transform:uppercase;">GOALisB IIM UG &amp; IPM Master Engine &bull; Official Diagnostic Dossier</div>
       <h1 style="margin:4px 0;font-size:20px;">${title}</h1>
       <div style="font-size:12px;color:#475569;">Candidate: <strong>${studentName}</strong> &bull; Serial ID: <strong>${serial}</strong> &bull; Date: ${(rec && rec.date) || new Date().toLocaleDateString()}</div>
     </div>
@@ -431,8 +431,8 @@
     <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:10px;"><div style="font-size:11px;color:#64748b;">Serial ID</div><div style="font-size:12px;font-weight:800;color:#b45309;padding-top:4px;">${serial}</div></div>
   </div>
   <div style="margin-bottom:18px;padding:12px;background:#f1f5f9;border-radius:10px;font-size:13px;">
-    <div><strong>Gauged Strengths:</strong> ${rec ? (rec.strengths || []).join(" â€¢ ") : "-"}</div>
-    <div style="margin-top:4px;"><strong>Gauged Deficiencies:</strong> ${rec ? (rec.deficiencies || []).join(" â€¢ ") : "-"}</div>
+    <div><strong>Gauged Strengths:</strong> ${rec ? (rec.strengths || []).join(" &bull; ") : "-"}</div>
+    <div style="margin-top:4px;"><strong>Gauged Deficiencies:</strong> ${rec ? (rec.deficiencies || []).join(" &bull; ") : "-"}</div>
   </div>
   ${rowsHtml ? `<h2 style="font-size:16px;margin-bottom:10px;">Question-by-Question Answer Key &amp; Solutions</h2>${rowsHtml}` : ""}
 </body></html>`;
@@ -464,7 +464,7 @@
     const apiExam = (opts && opts.apiExam) || spec.apiExam;
     const sectionFilter = (opts && opts.section) || "";
     const qCount = (opts && opts.qCount) || spec.qCount;
-    const title = (opts && opts.title) || `${spec.fullLabel} (${qCount} Qs â€¢ ${window.IPM_PAPER_TIER})`;
+    const title = (opts && opts.title) || `${spec.fullLabel} (${qCount} Qs &bull; ${window.IPM_PAPER_TIER})`;
 
     try {
       const params = new URLSearchParams({ limit: String(qCount), t: String(Date.now()) });
@@ -614,11 +614,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-700/40">
                 <div class="font-extrabold text-emerald-300 uppercase text-[10px] mb-1">&#9989; Gauged Strengths</div>
-                <div class="text-emerald-100">${(latest.strengths || []).join(" â€¢ ")}</div>
+                <div class="text-emerald-100">${(latest.strengths || []).join(" &bull; ")}</div>
               </div>
               <div class="p-3.5 rounded-xl bg-rose-950/30 border border-rose-700/40">
                 <div class="font-extrabold text-rose-300 uppercase text-[10px] mb-1">&#9888;&#65039; Gauged Deficiencies &amp; Focus Areas</div>
-                <div class="text-rose-100">${(latest.deficiencies || []).join(" â€¢ ")}</div>
+                <div class="text-rose-100">${(latest.deficiencies || []).join(" &bull; ")}</div>
               </div>
             </div>
           </div>
@@ -637,7 +637,7 @@
                 return `
                   <div class="p-4 rounded-xl bg-slate-950 border ${isRight ? "border-emerald-500/40" : attempted ? "border-rose-500/40" : "border-slate-800"} space-y-1.5 text-xs">
                     <div class="flex flex-wrap items-center justify-between gap-2 font-bold">
-                      <span class="text-indigo-300">Q${idx + 1}. ${q.section || q.exam || "IPM"} ${q.topic ? "â€¢ " + q.topic : ""}</span>
+                      <span class="text-indigo-300">Q${idx + 1}. ${q.section || q.exam || "IPM"} ${q.topic ? "&bull; " + q.topic : ""}</span>
                       <span class="${isRight ? "text-emerald-400" : attempted ? "text-rose-400" : "text-slate-400"}">${isRight ? "+4 Correct" : attempted ? (hasOpts ? "-1 Incorrect" : "0 SA Incorrect") : "0 Skipped"}</span>
                     </div>
                     <p class="text-slate-100 text-sm whitespace-pre-line">${q.prompt}</p>
@@ -1112,14 +1112,14 @@
     const rohtakComp = ((s.rohtak / 480) * 45 + (s.c10 / 100) * 10 + (s.c12 / 100) * 20).toFixed(1);
 
     const campuses = [
-      { key: "INDORE", name: "IIM Indore (5-Yr IPM)", yourScore: `${indTotal}/360 (ATS ${indAts}/65)`, cutoff: "SA â‰¥ 24 â€¢ MCQ â‰¥ 40 â€¢ VA â‰¥ 116 (Total ~180+)", gap: Math.max(0, 180 - indTotal), eligible: s.indSa >= 24 && s.indMcq >= 40 && s.indVa >= 116, note: s.indSa < 24 ? `Need +${24 - s.indSa} in QA-SA` : s.indMcq < 40 ? `Need +${40 - s.indMcq} in QA-MCQ` : s.indVa < 116 ? `Need +${116 - s.indVa} in VA` : "All 3 sectional cutoffs cleared!" },
+      { key: "INDORE", name: "IIM Indore (5-Yr IPM)", yourScore: `${indTotal}/360 (ATS ${indAts}/65)`, cutoff: "SA &ge; 24 &bull; MCQ &ge; 40 &bull; VA &ge; 116 (Total ~180+)", gap: Math.max(0, 180 - indTotal), eligible: s.indSa >= 24 && s.indMcq >= 40 && s.indVa >= 116, note: s.indSa < 24 ? `Need +${24 - s.indSa} in QA-SA` : s.indMcq < 40 ? `Need +${40 - s.indMcq} in QA-MCQ` : s.indVa < 116 ? `Need +${116 - s.indVa} in VA` : "All 3 sectional cutoffs cleared!" },
       { key: "RANCHI", name: "IIM Ranchi (5-Yr IPM)", yourScore: `${indTotal}/360 + Acads ${((s.c10 + s.c12) / 2).toFixed(1)}%`, cutoff: "Total ~172+ (No sectional bar, 20% 10th/12th weight)", gap: Math.max(0, 172 - indTotal), eligible: indTotal >= 172, note: indTotal >= 172 ? "Strong PI shortlist zone" : `Need +${172 - indTotal} overall IPMAT marks` },
-      { key: "ROHTAK", name: "IIM Rohtak (5-Yr IPM)", yourScore: `${s.rohtak}/480 (Pre-PI ${rohtakComp}/75)`, cutoff: "General ~385â€“405 / 480 + 30% Acad Weight", gap: Math.max(0, 390 - s.rohtak), eligible: s.rohtak >= 390, note: s.rohtak >= 390 ? "Above expected General PI call cutoff" : `Need +${390 - s.rohtak} marks in Rohtak CBT` },
-      { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", yourScore: `${s.jipmat}/400`, cutoff: "General ~310â€“325 / 400 (100% JIPMAT Merit)", gap: Math.max(0, 315 - s.jipmat), eligible: s.jipmat >= 315, note: s.jipmat >= 315 ? "Direct merit shortlist range" : `Need +${315 - s.jipmat} marks in JIPMAT` },
-      { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", yourScore: `${s.jipmat}/400`, cutoff: "General ~305â€“320 / 400 + Diversity", gap: Math.max(0, 310 - s.jipmat), eligible: s.jipmat >= 310, note: s.jipmat >= 310 ? "Competitive for Merit List 1" : `Need +${310 - s.jipmat} marks in JIPMAT` },
-      { key: "BANGALORE", name: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)", yourScore: `${s.iimbUg}/300 â€¢ Class 12 Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Class 12 Math mandatory for B.Sc. â€¢ ~235+/300", gap: Math.max(0, 235 - s.iimbUg), eligible: s.hasMath && s.iimbUg >= 235, note: !s.hasMath ? "Ineligible for B.Sc. (No Class 12 Math); eligible for BBA DBE" : s.iimbUg >= 235 ? "Eligible for both B.Sc. & BBA DBE PI" : `Need +${235 - s.iimbUg} in IIMB UG test` },
-      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS Digital & Supply Chain)", yourScore: `JEE ${s.jeePct}%ile â€¢ Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Class 12 Math mandatory â€¢ ~96.0+%ile equivalent", gap: Math.max(0, +(96.0 - s.jeePct).toFixed(1)), eligible: s.hasMath && s.jeePct >= 96.0, note: !s.hasMath ? "Requires Class 12 Mathematics" : s.jeePct >= 96.0 ? "Meets quantitative & JEE benchmark" : `Need +${(96.0 - s.jeePct).toFixed(1)}%ile` },
-      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr Tech-Mgmt UG)", yourScore: `Acads ${((s.c10 + s.c12) / 2).toFixed(1)}% â€¢ Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Strong Class 10/12 (85%+) + Quantitative Aptitude", gap: 0, eligible: s.hasMath && s.c10 >= 85 && s.c12 >= 85, note: s.hasMath && s.c10 >= 85 && s.c12 >= 85 ? "Strong academic + quant profile" : "Requires 85%+ academics & Class 12 Math" }
+      { key: "ROHTAK", name: "IIM Rohtak (5-Yr IPM)", yourScore: `${s.rohtak}/480 (Pre-PI ${rohtakComp}/75)`, cutoff: "General ~385&ndash;405 / 480 + 30% Acad Weight", gap: Math.max(0, 390 - s.rohtak), eligible: s.rohtak >= 390, note: s.rohtak >= 390 ? "Above expected General PI call cutoff" : `Need +${390 - s.rohtak} marks in Rohtak CBT` },
+      { key: "BODHGAYA", name: "IIM Bodh Gaya (5-Yr IPM)", yourScore: `${s.jipmat}/400`, cutoff: "General ~310&ndash;325 / 400 (100% JIPMAT Merit)", gap: Math.max(0, 315 - s.jipmat), eligible: s.jipmat >= 315, note: s.jipmat >= 315 ? "Direct merit shortlist range" : `Need +${315 - s.jipmat} marks in JIPMAT` },
+      { key: "JAMMU", name: "IIM Jammu (5-Yr IPM)", yourScore: `${s.jipmat}/400`, cutoff: "General ~305&ndash;320 / 400 + Diversity", gap: Math.max(0, 310 - s.jipmat), eligible: s.jipmat >= 310, note: s.jipmat >= 310 ? "Competitive for Merit List 1" : `Need +${310 - s.jipmat} marks in JIPMAT` },
+      { key: "BANGALORE", name: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)", yourScore: `${s.iimbUg}/300 &bull; Class 12 Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Class 12 Math mandatory for B.Sc. &bull; ~235+/300", gap: Math.max(0, 235 - s.iimbUg), eligible: s.hasMath && s.iimbUg >= 235, note: !s.hasMath ? "Ineligible for B.Sc. (No Class 12 Math); eligible for BBA DBE" : s.iimbUg >= 235 ? "Eligible for both B.Sc. & BBA DBE PI" : `Need +${235 - s.iimbUg} in IIMB UG test` },
+      { key: "MUMBAI", name: "IIM Mumbai (4-Yr BS Digital & Supply Chain)", yourScore: `JEE ${s.jeePct}%ile &bull; Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Class 12 Math mandatory &bull; ~96.0+%ile equivalent", gap: Math.max(0, +(96.0 - s.jeePct).toFixed(1)), eligible: s.hasMath && s.jeePct >= 96.0, note: !s.hasMath ? "Requires Class 12 Mathematics" : s.jeePct >= 96.0 ? "Meets quantitative & JEE benchmark" : `Need +${(96.0 - s.jeePct).toFixed(1)}%ile` },
+      { key: "LUCKNOW", name: "IIM Lucknow (4-Yr Tech-Mgmt UG)", yourScore: `Acads ${((s.c10 + s.c12) / 2).toFixed(1)}% &bull; Math: ${s.hasMath ? "Yes" : "No"}`, cutoff: "Strong Class 10/12 (85%+) + Quantitative Aptitude", gap: 0, eligible: s.hasMath && s.c10 >= 85 && s.c12 >= 85, note: s.hasMath && s.c10 >= 85 && s.c12 >= 85 ? "Strong academic + quant profile" : "Requires 85%+ academics & Class 12 Math" }
     ];
 
     const callsCount = campuses.filter(c => c.eligible).length;
@@ -1157,11 +1157,11 @@
             </div>
             <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-700/40">
               <div class="text-[10px] font-extrabold uppercase text-emerald-300">&#9989; Gauged Strengths</div>
-              <div class="text-emerald-100 mt-1">${(synced.strengths || []).join(" â€¢ ")}</div>
+              <div class="text-emerald-100 mt-1">${(synced.strengths || []).join(" &bull; ")}</div>
             </div>
             <div class="p-3 rounded-xl bg-rose-950/30 border border-rose-700/40">
               <div class="text-[10px] font-extrabold uppercase text-rose-300">&#9888;&#65039; Gauged Deficiencies</div>
-              <div class="text-rose-100 mt-1">${(synced.deficiencies || []).join(" â€¢ ")}</div>
+              <div class="text-rose-100 mt-1">${(synced.deficiencies || []).join(" &bull; ")}</div>
             </div>
           </div>
         ` : ""}
