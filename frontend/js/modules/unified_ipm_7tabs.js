@@ -1302,17 +1302,32 @@
     const spec = window.getActiveIpmModeSpec();
     const hist = getMockHistory();
     if (!hist.length) {
-      window.IPM_T7_STORE.toast = "No mocks executed yet — complete any mock in Tab 4 or Tab 5 first, then click Sync Mock.";
+      window.IPM_T7_STORE.toast = "No mocks executed yet — complete a mock in Tab 4 or Tab 5 first, then click Sync Mock.";
       window.renderActiveTab();
       return;
     }
     const campusMatches = hist.filter(h => h.campusKey === spec.key);
-    const raw = campusMatches.length ? campusMatches[campusMatches.length - 1] : hist[hist.length - 1];
+    const scoredCampus = campusMatches.filter(h => Number(h.score || 0) > 0);
+    const scoredAny = hist.filter(h => Number(h.score || 0) > 0);
+
+    const raw = scoredCampus.length
+      ? scoredCampus[scoredCampus.length - 1]
+      : campusMatches.length
+        ? campusMatches[campusMatches.length - 1]
+        : scoredAny.length
+          ? scoredAny[scoredAny.length - 1]
+          : hist[hist.length - 1];
+
     const chosen = normalizeMockForSync(raw);
     window.IPM_T7_STORE.syncedRecord = chosen;
-    window.IPM_T7_STORE.toast = campusMatches.length
-      ? `Synced latest ${spec.shortLabel} mock: ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc).`
-      : `Synced latest logged mock ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc).`;
+
+    if (Number(chosen.score || 0) <= 0) {
+      window.IPM_T7_STORE.toast = `Synced ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • 0% Acc). Note: 0-mark mock has no positive score to project — attempt & save answers in Tab 4/5 for accurate section calibration.`;
+    } else if (campusMatches.length) {
+      window.IPM_T7_STORE.toast = `Synced ${spec.shortLabel} mock ${chosen.serialId}: ${chosen.score}/${chosen.maxScore} (${chosen.accuracyPct || 0}% Acc).`;
+    } else {
+      window.IPM_T7_STORE.toast = `No ${spec.shortLabel} mock logged yet — synced ${chosen.serialId} (${chosen.score}/${chosen.maxScore} • ${chosen.accuracyPct || 0}% Acc) as baseline.`;
+    }
     persistT7Store();
     window.renderActiveTab();
   };
@@ -1381,17 +1396,67 @@
     }
 
     const secStats = (synced && synced.secStats) || {};
-    const sectionRows = [
+    const isZeroMock = synced && Number(synced.score || 0) <= 0 && Number(synced.correct || 0) === 0;
+    const rawRowsByMode = {
+      INDORE: [
+        { label: "Section 1: QA Short Answer (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
+        { label: "Section 2: QA MCQ & Higher Math (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
+        { label: "Section 3: Verbal Ability (+4/-1)", target: t.indVa, max: 180, mockKey: "VARC" }
+      ],
+      RANCHI: [
+        { label: "IPMAT QA-SA Component (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
+        { label: "IPMAT QA-MCQ Component (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
+        { label: "IPMAT Verbal Ability Component (+4/-1)", target: t.indVa, max: 180, mockKey: "VARC" }
+      ],
+      ROHTAK: [
+        { label: "Rohtak Quantitative Ability (/160)", target: Math.round(t.rohtak / 3), max: 160, mockKey: "QA-MCQ" },
+        { label: "Rohtak Logical Reasoning (/160)", target: Math.round(t.rohtak / 3), max: 160, mockKey: "DILR" },
+        { label: "Rohtak Verbal Ability (/160)", target: t.rohtak - 2 * Math.round(t.rohtak / 3), max: 160, mockKey: "VARC" }
+      ],
+      BODHGAYA: [
+        { label: "JIPMAT Quantitative Aptitude (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "QA-MCQ" },
+        { label: "JIPMAT DI & Logical Reasoning (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "DILR" },
+        { label: "JIPMAT VARC & Grammar (/136)", target: t.jipmat - 2 * Math.round(t.jipmat * 0.33), max: 136, mockKey: "VARC" }
+      ],
+      JAMMU: [
+        { label: "JIPMAT Quantitative Aptitude (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "QA-MCQ" },
+        { label: "JIPMAT DI & Logical Reasoning (/132)", target: Math.round(t.jipmat * 0.33), max: 132, mockKey: "DILR" },
+        { label: "JIPMAT VARC & Grammar (/136)", target: t.jipmat - 2 * Math.round(t.jipmat * 0.33), max: 136, mockKey: "VARC" }
+      ],
+      BANGALORE: [
+        { label: "IIMB Quant, Stats & Calculus (/120)", target: Math.round(t.iimbUg * 0.4), max: 120, mockKey: "QA-MCQ" },
+        { label: "IIMB Business & Econ DI (/90)", target: Math.round(t.iimbUg * 0.3), max: 90, mockKey: "DILR" },
+        { label: "IIMB Verbal & Critical Reasoning (/90)", target: t.iimbUg - Math.round(t.iimbUg * 0.4) - Math.round(t.iimbUg * 0.3), max: 90, mockKey: "VARC" }
+      ],
+      KOZHIKODE: [
+        { label: "IIMK BMS Quantitative Aptitude (/140)", target: Math.round(t.iimkBms * 0.35), max: 140, mockKey: "QA-MCQ" },
+        { label: "IIMK Business & Data Logic (/130)", target: Math.round(t.iimkBms * 0.325), max: 130, mockKey: "DILR" },
+        { label: "IIMK VARC & Comprehension (/130)", target: t.iimkBms - Math.round(t.iimkBms * 0.35) - Math.round(t.iimkBms * 0.325), max: 130, mockKey: "VARC" }
+      ],
+      CUET: [
+        { label: "CUET General Aptitude Test (GAT /250)", target: Math.round(t.cuetScore / 3), max: 250, mockKey: "DILR" },
+        { label: "CUET English Language & RC (/250)", target: Math.round(t.cuetScore / 3), max: 250, mockKey: "VARC" },
+        { label: "CUET Applied / Core Math (/250)", target: t.cuetScore - 2 * Math.round(t.cuetScore / 3), max: 250, mockKey: "QA-MCQ" }
+      ]
+    };
+
+    const activeRawRows = rawRowsByMode[spec.key] || [
       { label: "QA Short Answer (+4/0)", target: t.indSa, max: 60, mockKey: "QA-SA" },
       { label: "QA & Higher Math (+4/-1)", target: t.indMcq, max: 120, mockKey: "QA-MCQ" },
       { label: "DI & Logical Reasoning", target: Math.round((t.rohtak / 480) * 160), max: 160, mockKey: "DILR" },
       { label: "VARC & Verbal Ability", target: t.indVa, max: 180, mockKey: "VARC" }
-    ].map(r => {
+    ];
+
+    const sectionRows = activeRawRows.map(r => {
+      if (!synced) return { ...r, achieved: null, pct: 0, diff: null, zeroFlag: false };
+      if (isZeroMock) return { ...r, achieved: 0, pct: 0, diff: -r.target, zeroFlag: true };
       const m = secStats[r.mockKey];
-      const achieved = m && m.total > 0 ? Math.round((Math.max(0, m.score) / (m.total * 4)) * r.max) : null;
-      const pct = achieved !== null ? Math.min(100, Math.round((achieved / Math.max(1, r.target)) * 100)) : 0;
-      const diff = achieved !== null ? achieved - r.target : null;
-      return { ...r, achieved, pct, diff };
+      const overallRatio = Math.max(0, Number(synced.score || 0)) / Math.max(1, Number(synced.maxScore || 120));
+      const secRatio = (m && m.total > 0) ? (Math.max(0, m.score) / (m.total * 4)) : overallRatio;
+      const achieved = Math.round(secRatio * r.max);
+      const pct = Math.min(100, Math.round((achieved / Math.max(1, r.target)) * 100));
+      const diff = achieved - r.target;
+      return { ...r, achieved, pct, diff, zeroFlag: false };
     });
 
     const campuses = [
@@ -1530,7 +1595,7 @@
                         <td class="py-2.5 px-2 font-mono text-indigo-300">${r.target} / ${r.max}</td>
                         <td class="py-2.5 px-2 font-mono font-bold text-white">${r.achieved !== null ? `${r.achieved} / ${r.max}` : "—"}</td>
                         <td class="py-2.5 px-2 font-bold ${r.diff === null ? "text-slate-400" : r.diff >= 0 ? "text-emerald-400" : "text-rose-400"}">
-                          ${r.diff === null ? "Pending Mock" : r.diff >= 0 ? `+${r.diff} Surplus` : `${r.diff} Deficit`}
+                          ${r.diff === null ? "Pending Mock" : r.zeroFlag ? "0-Score Mock (Needs Valid Attempt)" : r.diff >= 0 ? `+${r.diff} Surplus` : `${r.diff} Deficit`}
                         </td>
                         <td class="py-2.5 pl-2">
                           <div class="flex items-center gap-2">
