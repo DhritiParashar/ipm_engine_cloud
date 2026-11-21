@@ -213,9 +213,27 @@
     return INDIVIDUAL_IIM_MODES.find(m => m.key === window.ACTIVE_IIM_KEY) || INDIVIDUAL_IIM_MODES[0];
   };
 
+  const LEGACY_MODE_MAP = {
+    ALL: "ALL_IIMS",
+    INDORE: "IPMAT_INDORE",
+    RANCHI: "IPMAT_INDORE",
+    ROHTAK: "IPMAT_ROHTAK",
+    BODHGAYA: "JIPMAT",
+    JAMMU: "JIPMAT",
+    BANGALORE: "IIMB_UG",
+    MUMBAI: "IIMM_IIML_UG",
+    LUCKNOW: "IIMM_IIML_UG"
+  };
+
   window.selectIndividualIimMode = function (key) {
     window.ACTIVE_IIM_KEY = key;
-    if (window.IPM_STATE) window.IPM_STATE.mode = key;
+    const legacyId = LEGACY_MODE_MAP[key] || "ALL_IIMS";
+    if (window.IPM_STATE) {
+      window.IPM_STATE.mode = legacyId;
+      window.IPM_STATE.selectedQuantId = null;
+      window.IPM_STATE.selectedDilrId = null;
+      window.IPM_STATE.selectedVarcId = null;
+    }
     const spec = window.getActiveIpmModeSpec();
     if (spec && spec.pyqExamFilter) {
       window.PYQ_EXAM_FILTER = spec.pyqExamFilter;
@@ -449,11 +467,15 @@
     const title = (opts && opts.title) || `${spec.fullLabel} (${qCount} Qs • ${window.IPM_PAPER_TIER})`;
 
     try {
-      let url = sectionFilter
-        ? `/api/questions?section=${encodeURIComponent(sectionFilter)}&limit=${qCount}&t=${Date.now()}`
-        : `/api/questions?exam=${encodeURIComponent(apiExam)}&limit=${qCount}&t=${Date.now()}`;
-      let res = await fetch(url);
+      const params = new URLSearchParams({ limit: String(qCount), t: String(Date.now()) });
+      if (apiExam && apiExam !== "ALL") params.set("exam", apiExam);
+      if (sectionFilter) params.set("section", sectionFilter);
+      let res = await fetch(`/api/questions?${params.toString()}`);
       let data = await res.json();
+      if ((!Array.isArray(data.questions) || data.questions.length < 4) && sectionFilter) {
+        res = await fetch(`/api/questions?section=${encodeURIComponent(sectionFilter)}&limit=${qCount}&t=${Date.now()}`);
+        data = await res.json();
+      }
       if (!Array.isArray(data.questions) || data.questions.length < 4) {
         res = await fetch(`/api/questions?exam=ALL&limit=${qCount}&t=${Date.now()}`);
         data = await res.json();
@@ -1153,6 +1175,7 @@
             <div><div class="flex justify-between font-bold mb-1"><span>IPMAT Rohtak Composite (/480)</span><span class="text-cyan-300">${s.rohtak} / 480</span></div><input type="range" min="150" max="480" step="5" value="${s.rohtak}" oninput="window.updateIpmT7Slider('rohtak', this.value)" class="w-full cursor-pointer"></div>
             <div><div class="flex justify-between font-bold mb-1"><span>JIPMAT Bodh Gaya &amp; Jammu (/400)</span><span class="text-emerald-300">${s.jipmat} / 400</span></div><input type="range" min="150" max="400" step="5" value="${s.jipmat}" oninput="window.updateIpmT7Slider('jipmat', this.value)" class="w-full cursor-pointer"></div>
             <div><div class="flex justify-between font-bold mb-1"><span>IIM Bangalore UG Test (/300)</span><span class="text-purple-300">${s.iimbUg} / 300</span></div><input type="range" min="100" max="300" step="5" value="${s.iimbUg}" oninput="window.updateIpmT7Slider('iimbUg', this.value)" class="w-full cursor-pointer"></div>
+            <div><div class="flex justify-between font-bold mb-1"><span>JEE Main %ile (IIM Mumbai BS)</span><span class="text-sky-300">${s.jeePct}%ile</span></div><input type="range" min="80" max="100" step="0.2" value="${s.jeePct}" oninput="window.updateIpmT7Slider('jeePct', this.value)" class="w-full cursor-pointer"></div>
             <div class="grid grid-cols-2 gap-3 pt-1">
               <div><label class="text-slate-400 font-bold">Class 10 %</label><input type="number" step="0.5" value="${s.c10}" onchange="window.updateIpmT7Slider('c10', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white"></div>
               <div><label class="text-slate-400 font-bold">Class 12 %</label><input type="number" step="0.5" value="${s.c12}" onchange="window.updateIpmT7Slider('c12', this.value)" class="w-full mt-1 rounded-xl bg-slate-950 border border-slate-700 p-2 text-white"></div>
