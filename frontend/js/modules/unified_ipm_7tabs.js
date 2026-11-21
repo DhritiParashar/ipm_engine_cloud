@@ -1,12 +1,15 @@
 // ==============================================================================
-// GOALisB IIM UG & IPM MASTER ENGINE — MODE-ALIGNED MOCKS, SERIAL LOGS & TAB 7 (v22)
-// - Aligns all 6 top exam mode pills with:
-//   1) Tab 4 Proctored Mock Lobby (Mode-specific Full Mock + Serial ID Ledger)
-//   2) Deterministic Mode-Prefixed Serial IDs (IPM-ALL / IPM-IND / IPM-ROH / IPM-JIP / IPM-IIMB / IPM-IIMM)
-//   3) Tab 7 8-IIM Call & Target Forecaster (Mode-specific slider sync + Verified Mock Log)
+// GOALisB IIM UG & IPM MASTER ENGINE — INDIVIDUAL 8-IIM MODES + 8-TAB SUITE (v23)
+// - Individual mode selector for All-8 IIMs + each of the 8 IIM campuses
+// - Tab 4: Proctored Full Mock Simulator (IPM-[CAMPUS]-YYYYMMDD-#NN -> Syncs to Tab 7)
+// - Tab 5: Practice Mock & Sectional Sprints (PRAC-IPM-[CAMPUS]-YYYYMMDD-#NN -> Free & Unlimited)
+// - Tab 6: 5-Yr PYQ Vault (2019-2026) -> Launches into Tab 5 Practice Mock
+// - Tab 7: 8-IIM Call & Target Forecaster (Sync Mock, Strength/Deficiency Audit & Mock Log)
+// - Tab 8: Split-Screen Trap Doctor (56 Traps + EV Sim) & Socratic AI Doubt Solver
 // ==============================================================================
 (function () {
   window.IPM_T3_SUBMODE = window.IPM_T3_SUBMODE || "varc";
+  window.ACTIVE_IIM_KEY = window.ACTIVE_IIM_KEY || "ALL";
 
   const origRenderTab3 = window.renderTab3;
   const origRenderTab4Trap = window.renderTab4;
@@ -14,82 +17,195 @@
   const origRenderTab7Doubt = window.renderTab7;
   const origRenderTab9Pyq = window.renderTab9;
 
-  // Map top mode pills to exact Serial ID prefix, API filter, mock specs & Tab 7 target campus
-  const IPM_MODE_SPECS = {
-    ALL: {
+  const INDIVIDUAL_IIM_MODES = [
+    {
+      key: "ALL",
       code: "IPM-ALL",
-      label: "All-IIM Comprehensive Master (8 IIMs)",
+      shortLabel: "All-8 IIMs Master",
+      subLabel: "Unified",
+      fullLabel: "All-8 IIMs Comprehensive Master",
+      campusName: "IIM Indore (5-Yr IPM)",
       apiExam: "ALL",
       qCount: 30,
       mins: 45,
-      pattern: "MCQ +4/-1 | SA +4/0",
-      targetCampus: "IIM Indore (5-Yr IPM)",
-      accent: "indigo"
+      pattern: "100 Qs | 150 Mins | Unified Pool",
+      marking: "MCQ +4/-1 | SA +4/0 (Zero Penalty)",
+      note: "Unified multi-campus benchmark across Indore, Ranchi, Rohtak, Bodh Gaya, Jammu, Bangalore, Mumbai & Lucknow."
     },
-    INDORE: {
+    {
+      key: "INDORE",
       code: "IPM-IND",
-      label: "IPMAT Indore & Ranchi (5-Yr IPM)",
+      shortLabel: "IIM Indore",
+      subLabel: "5-Yr IPM",
+      fullLabel: "IIM Indore (5-Yr IPM)",
+      campusName: "IIM Indore (5-Yr IPM)",
       apiExam: "IPMAT",
       qCount: 25,
       mins: 38,
-      pattern: "QA-SA (+4/0) • QA-MCQ (+4/-1) • VA (+4/-1)",
-      targetCampus: "IIM Indore (5-Yr IPM)",
-      accent: "amber"
+      pattern: "90 Qs (15 SA + 30 MCQ + 45 VA) | 120 Mins",
+      marking: "MCQ +4/-1 | QA-SA +4/0 (Zero Penalty)",
+      note: "Strict 40-min sectional timers & cutoffs (SA ≥24, MCQ ≥40, VA ≥116) + 35% Personal Interview."
     },
-    ROHTAK: {
+    {
+      key: "RANCHI",
+      code: "IPM-RAN",
+      shortLabel: "IIM Ranchi",
+      subLabel: "5-Yr IPM",
+      fullLabel: "IIM Ranchi (5-Yr IPM)",
+      campusName: "IIM Ranchi (5-Yr IPM)",
+      apiExam: "IPMAT",
+      qCount: 25,
+      mins: 38,
+      pattern: "Uses IPMAT Indore Score (No Sectional Bar) | 120 Mins",
+      marking: "MCQ +4/-1 | SA +4/0 | 20% 10th/12th Weight",
+      note: "Evaluates overall IPMAT Indore composite (~172+ General) with 20% academic weightage and 30% PI."
+    },
+    {
+      key: "ROHTAK",
       code: "IPM-ROH",
-      label: "IPMAT Rohtak (5-Yr IPM)",
+      shortLabel: "IIM Rohtak",
+      subLabel: "5-Yr IPM",
+      fullLabel: "IIM Rohtak (5-Yr IPM)",
+      campusName: "IIM Rohtak (5-Yr IPM)",
       apiExam: "Rohtak",
       qCount: 30,
       mins: 40,
-      pattern: "QA • LR • VA (+4/-1 across all 3 sections)",
-      targetCampus: "IIM Rohtak (5-Yr IPM)",
-      accent: "cyan"
+      pattern: "120 Qs (40 QA + 40 LR + 40 VA) | 120 Mins",
+      marking: "MCQ +4/-1 across all 3 sections | 30% Acad Weight",
+      note: "High-speed accuracy test (~390+/480 General cutoff) combined with 10% Class 10 & 20% Class 12 weight."
     },
-    JIPMAT: {
-      code: "IPM-JIP",
-      label: "JIPMAT Bodh Gaya & Jammu (5-Yr IPM)",
+    {
+      key: "BODHGAYA",
+      code: "IPM-BG",
+      shortLabel: "IIM Bodh Gaya",
+      subLabel: "5-Yr IPM",
+      fullLabel: "IIM Bodh Gaya (5-Yr IPM)",
+      campusName: "IIM Bodh Gaya (5-Yr IPM)",
       apiExam: "JIPMAT",
       qCount: 30,
       mins: 40,
-      pattern: "QA • DILR • VARC (+4/-1 NTA CBT)",
-      targetCampus: "IIM Bodh Gaya (5-Yr IPM)",
-      accent: "emerald"
+      pattern: "100 Qs (33 QA + 33 DILR + 34 VARC) | 150 Mins",
+      marking: "MCQ +4/-1 | 100% JIPMAT Merit (No PI)",
+      note: "Direct admission via NTA JIPMAT score (~315+/400 General) with zero interview stage."
     },
-    IIMB: {
+    {
+      key: "JAMMU",
+      code: "IPM-JAM",
+      shortLabel: "IIM Jammu",
+      subLabel: "5-Yr IPM",
+      fullLabel: "IIM Jammu (5-Yr IPM)",
+      campusName: "IIM Jammu (5-Yr IPM)",
+      apiExam: "JIPMAT",
+      qCount: 30,
+      mins: 40,
+      pattern: "100 Qs (33 QA + 33 DILR + 34 VARC) | 150 Mins",
+      marking: "MCQ +4/-1 | JIPMAT Merit + Diversity Weight",
+      note: "Direct admission via NTA JIPMAT score (~310+/400 General) plus gender diversity points."
+    },
+    {
+      key: "BANGALORE",
       code: "IPM-IIMB",
-      label: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
+      shortLabel: "IIM Bangalore",
+      subLabel: "B.Sc. / BBA",
+      fullLabel: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
+      campusName: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
       apiExam: "IIM",
       qCount: 20,
       mins: 30,
-      pattern: "Higher Math / Stats • Business DI • Verbal (+4/-1)",
-      targetCampus: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
-      accent: "purple"
+      pattern: "60 Qs (Quant/Stats + Business DI + Verbal) | 90 Mins",
+      marking: "MCQ +4/-1 | Class 12 Math Mandatory for B.Sc.",
+      note: "Quantitative Economics, Data Science & Digital Business entrance (~235+/300) followed by PI."
     },
-    IIMM_IIML: {
+    {
+      key: "MUMBAI",
       code: "IPM-IIMM",
-      label: "IIM Mumbai & IIM Lucknow (4-Yr Tech-Mgmt UG)",
+      shortLabel: "IIM Mumbai",
+      subLabel: "4-Yr BS",
+      fullLabel: "IIM Mumbai (4-Yr BS Digital & Supply Chain)",
+      campusName: "IIM Mumbai (4-Yr BS Digital & Supply Chain)",
       apiExam: "IIM",
       qCount: 20,
       mins: 30,
-      pattern: "JEE/Higher Math • Analytics & Supply Chain Aptitude (+4/-1)",
-      targetCampus: "IIM Mumbai (4-Yr BS Digital & Supply Chain)",
-      accent: "sky"
+      pattern: "Higher Math, Analytics & Supply Chain Aptitude | 90 Mins",
+      marking: "MCQ +4/-1 | Class 12 Math Mandatory",
+      note: "Quantitative & analytical track (~96.0+%ile JEE / IPMAT equivalent) with Class 12 Mathematics."
+    },
+    {
+      key: "LUCKNOW",
+      code: "IPM-IIML",
+      shortLabel: "IIM Lucknow",
+      subLabel: "4-Yr Tech-Mgmt",
+      fullLabel: "IIM Lucknow (4-Yr Tech-Mgmt UG)",
+      campusName: "IIM Lucknow (4-Yr Tech-Mgmt UG)",
+      apiExam: "IIM",
+      qCount: 20,
+      mins: 30,
+      pattern: "Higher Math, Decision Analytics & VARC | 90 Mins",
+      marking: "MCQ +4/-1 | 85%+ Class 10/12 + Math",
+      note: "Combines strong Class 10/12 academic rigor (85%+) with quantitative and leadership PI."
+    }
+  ];
+
+  window.getActiveIpmModeSpec = function () {
+    return INDIVIDUAL_IIM_MODES.find(m => m.key === window.ACTIVE_IIM_KEY) || INDIVIDUAL_IIM_MODES[0];
+  };
+
+  window.selectIndividualIimMode = function (key) {
+    window.ACTIVE_IIM_KEY = key;
+    if (window.IPM_STATE) window.IPM_STATE.mode = key;
+    renderIndividualIimBar();
+    if (typeof window.renderActiveTab === "function") {
+      window.renderActiveTab();
     }
   };
 
-  window.getActiveIpmModeSpec = function () {
-    const rawId = ((window.IPM_STATE && window.IPM_STATE.mode) || "").toUpperCase();
-    const activePill = document.querySelector("#exam-mode-pills button.bg-indigo-600, #exam-mode-pills button.bg-amber-500");
-    const pillTxt = ((activePill && activePill.textContent) || rawId).toUpperCase();
+  function renderIndividualIimBar() {
+    const pillsEl = document.getElementById("exam-mode-pills");
+    const bannerEl = document.getElementById("exam-meta-banner");
+    const spec = window.getActiveIpmModeSpec();
 
-    if (rawId.includes("ROH") || pillTxt.includes("ROHTAK")) return IPM_MODE_SPECS.ROHTAK;
-    if (rawId.includes("JIP") || pillTxt.includes("JIPMAT") || pillTxt.includes("BODH")) return IPM_MODE_SPECS.JIPMAT;
-    if (rawId.includes("IIMB") || pillTxt.includes("BANGALORE")) return IPM_MODE_SPECS.IIMB;
-    if (rawId.includes("MUM") || rawId.includes("LUCK") || pillTxt.includes("MUMBAI") || pillTxt.includes("LUCKNOW")) return IPM_MODE_SPECS.IIMM_IIML;
-    if (rawId.includes("IND") || pillTxt.includes("INDORE")) return IPM_MODE_SPECS.INDORE;
-    return IPM_MODE_SPECS.ALL;
-  };
+    if (pillsEl) {
+      pillsEl.innerHTML = INDIVIDUAL_IIM_MODES.map(m => {
+        const active = m.key === spec.key;
+        return `
+          <button type="button" onclick="window.selectIndividualIimMode('${m.key}')"
+            class="px-3 py-1.5 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+              active
+                ? "bg-indigo-600 border-indigo-400 text-white shadow-md"
+                : "bg-slate-900/90 border-slate-700 text-slate-300 hover:border-indigo-400"
+            }">
+            ${m.shortLabel} <span class="text-[10px] opacity-80 font-semibold">(${m.subLabel})</span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    if (bannerEl) {
+      bannerEl.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div>
+            <span class="font-extrabold text-indigo-400">Active Campus Focus:</span>
+            <span class="font-bold text-white">${spec.fullLabel}</span>
+            <span class="ml-2 px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px] font-bold">${spec.code}</span>
+          </div>
+          <div class="font-semibold text-emerald-400">Pattern: ${spec.pattern}</div>
+          <div class="font-semibold text-amber-400">Marking: ${spec.marking}</div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">${spec.note}</p>
+      `;
+    }
+  }
+
+  // Override legacy examSwitcher renderers so the 9 individual campus pills persist cleanly
+  window.renderExamModePills = renderIndividualIimBar;
+  window.renderExamMetaBanner = renderIndividualIimBar;
+  setTimeout(renderIndividualIimBar, 60);
+  setInterval(() => {
+    const pillsEl = document.getElementById("exam-mode-pills");
+    if (pillsEl && pillsEl.children.length !== INDIVIDUAL_IIM_MODES.length) {
+      renderIndividualIimBar();
+    }
+  }, 600);
 
   function getMockHistory() {
     try {
@@ -106,72 +222,66 @@
     localStorage.setItem("ipm_mock_history_v1", JSON.stringify(hist));
   }
 
-  function generateModeSerialId(modeCode) {
+  function generateModeSerialId(prefixCode) {
     const now = new Date();
     const ymd = now.getFullYear().toString()
       + String(now.getMonth() + 1).padStart(2, "0")
       + String(now.getDate()).padStart(2, "0");
     const hist = getMockHistory();
-    const samePrefix = hist.filter(h => String(h.serialId || "").startsWith(`${modeCode}-${ymd}`));
+    const samePrefix = hist.filter(h => String(h.serialId || "").startsWith(`${prefixCode}-${ymd}`));
     const attemptNum = String(samePrefix.length + 1).padStart(2, "0");
-    return `${modeCode}-${ymd}-#${attemptNum}`;
+    return `${prefixCode}-${ymd}-#${attemptNum}`;
   }
 
-  // Re-render active tab immediately when any of the 6 top exam mode pills is clicked
-  document.addEventListener("click", function (ev) {
-    const pill = ev.target && ev.target.closest ? ev.target.closest("#exam-mode-pills button") : null;
-    if (pill) {
-      setTimeout(() => {
-        if (window.IPM_STATE && ["tab4", "tab7"].includes(window.IPM_STATE.activeTab)) {
-          window.renderActiveTab();
-        }
-      }, 45);
+  function computeStrengthAndDeficiency(secStats) {
+    const entries = Object.entries(secStats || {}).filter(([, v]) => v.total > 0);
+    if (!entries.length) {
+      return {
+        strengths: ["Balanced Baseline"],
+        deficiencies: ["Complete more sectional items for granular split"],
+        secSummary: "General Composite"
+      };
     }
-  }, true);
+    const ranked = entries.map(([sec, v]) => ({
+      sec,
+      acc: Math.round((v.correct / v.total) * 100),
+      score: v.score,
+      max: v.total * 4
+    })).sort((a, b) => b.acc - a.acc);
 
-  // TAB 3: VARC & Vocab Studio + Embedded AI PI / WAT Evaluator
-  window.setIpmTab3Submode = function (m) {
-    window.IPM_T3_SUBMODE = m;
-    window.renderActiveTab();
-  };
+    const strengths = ranked.filter(r => r.acc >= 65).map(r => `${r.sec} (${r.acc}% acc, ${r.score}/${r.max})`);
+    const deficiencies = ranked.filter(r => r.acc < 65).map(r => `${r.sec} (${r.acc}% acc, ${r.score}/${r.max})`);
 
-  window.renderTab3 = function (el) {
-    el.innerHTML = `
-      <div class="mb-4 p-3 rounded-2xl bg-slate-900/95 border border-purple-500/30 flex flex-wrap items-center justify-between gap-2">
-        <div class="text-xs font-bold text-slate-300">Studio Workspace Mode:</div>
-        <div class="flex gap-2">
-          <button type="button" onclick="window.setIpmTab3Submode('varc')"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition ${window.IPM_T3_SUBMODE === 'varc' ? 'bg-purple-600 text-white shadow' : 'bg-slate-950 text-slate-300 border border-slate-800'}">
-            &#128214; VARC, RC &amp; Confusable Vocab Studio
-          </button>
-          <button type="button" onclick="window.setIpmTab3Submode('pi_wat')"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition ${window.IPM_T3_SUBMODE === 'pi_wat' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-950 text-slate-300 border border-slate-800'}">
-            &#127908; 8-IIM AI PI / WAT &amp; Current Affairs Evaluator (57 Prompts)
-          </button>
-        </div>
-      </div>
-      <div id="ipm-tab3-inner"></div>
-    `;
-    const inner = document.getElementById("ipm-tab3-inner");
-    if (window.IPM_T3_SUBMODE === "pi_wat" && typeof origRenderTab5Pi === "function") {
-      origRenderTab5Pi(inner);
-    } else if (typeof origRenderTab3 === "function") {
-      origRenderTab3(inner);
+    if (!strengths.length && ranked.length) strengths.push(`${ranked[0].sec} (${ranked[0].acc}% top section)`);
+    if (!deficiencies.length && ranked.length > 1) {
+      const lowest = ranked[ranked.length - 1];
+      deficiencies.push(`${lowest.sec} (${lowest.acc}% — push above 80% for top call buffer)`);
     }
-  };
 
-  // TAB 4: Mode-Aligned Proctored Mock Simulator + Serial ID Attempt Ledger
-  window.launchModeAlignedIpmMock = async function (modeCodeOverride, apiExamOverride, qCountOverride, labelOverride) {
+    return {
+      strengths,
+      deficiencies: deficiencies.length ? deficiencies : ["All sections ≥65% — focus on negative-marking elimination"],
+      secSummary: ranked.map(r => `${r.sec}: ${r.score}/${r.max}`).join(" • ")
+    };
+  }
+
+  // Launch either a Proctored Full Mock (Tab 4) or an Unlimited Practice Mock (Tab 5)
+  window.launchIpmUnifiedMock = async function (opts) {
     const spec = window.getActiveIpmModeSpec();
-    const modeCode = modeCodeOverride || spec.code;
-    const apiExam = apiExamOverride || spec.apiExam;
-    const qCount = qCountOverride || spec.qCount;
-    const label = labelOverride || `${spec.label} (${qCount} Qs)`;
+    const isPractice = Boolean(opts && opts.isPractice);
+    const modeCode = (opts && opts.modeCode) || (isPractice ? `PRAC-${spec.code}` : spec.code);
+    const apiExam = (opts && opts.apiExam) || spec.apiExam;
+    const sectionFilter = (opts && opts.section) || "";
+    const qCount = (opts && opts.qCount) || spec.qCount;
+    const title = (opts && opts.title) || `${spec.fullLabel} (${qCount} Qs)`;
 
     try {
-      let res = await fetch(`/api/questions?exam=${encodeURIComponent(apiExam)}&limit=${qCount}&t=${Date.now()}`);
+      let url = sectionFilter
+        ? `/api/questions?section=${encodeURIComponent(sectionFilter)}&limit=${qCount}&t=${Date.now()}`
+        : `/api/questions?exam=${encodeURIComponent(apiExam)}&limit=${qCount}&t=${Date.now()}`;
+      let res = await fetch(url);
       let data = await res.json();
-      if (!Array.isArray(data.questions) || data.questions.length < 5) {
+      if (!Array.isArray(data.questions) || data.questions.length < 4) {
         res = await fetch(`/api/questions?exam=ALL&limit=${qCount}&t=${Date.now()}`);
         data = await res.json();
       }
@@ -180,9 +290,11 @@
         window.PG_MOCK = {
           started: true,
           submitted: false,
+          isPractice: isPractice,
           serialId: serialId,
           modeCode: modeCode,
-          title: label,
+          campusKey: spec.key,
+          title: title,
           questions: data.questions,
           currentIndex: 0,
           answers: {},
@@ -193,196 +305,84 @@
         window.renderActiveTab();
       }
     } catch (e) {
-      alert("Error loading mock questions: " + e.message);
+      alert("Error loading mock items: " + e.message);
     }
   };
 
-  const origSubmitPgMock = window.submitPgMock;
+  // Intercept submitPgMock to compute per-section Strength & Deficiency diagnostics + Serial ID log
   window.submitPgMock = function () {
-    if (window.PG_MOCK && !window.PG_MOCK.submitted && Array.isArray(window.PG_MOCK.questions)) {
-      const qs = window.PG_MOCK.questions;
-      let score = 0, maxScore = qs.length * 4, correct = 0, wrong = 0, skipped = 0;
-      let saScore = 0, mcqScore = 0, vaScore = 0;
+    if (!window.PG_MOCK || window.PG_MOCK.submitted) return;
+    if (window.PG_MOCK.timerId) clearInterval(window.PG_MOCK.timerId);
 
-      qs.forEach(q => {
-        const u = window.PG_MOCK.answers[q.id];
-        const hasOpts = Array.isArray(q.options) && q.options.length > 0;
-        const sec = String(q.section || "").toUpperCase();
-        if (u === undefined || u === null || String(u).trim() === "") {
-          skipped++;
-        } else if (hasOpts ? Number(u) === Number(q.answer) : String(u).trim().toLowerCase() === String(q.answer).trim().toLowerCase()) {
-          correct++;
-          score += 4;
-          if (!hasOpts || sec.includes("SA")) saScore += 4;
-          else if (sec.includes("VARC")) vaScore += 4;
-          else mcqScore += 4;
-        } else {
-          wrong++;
-          if (hasOpts) {
-            score -= 1;
-            if (sec.includes("VARC")) vaScore -= 1;
-            else mcqScore -= 1;
-          }
+    const qs = window.PG_MOCK.questions || [];
+    let score = 0, maxScore = qs.length * 4, correct = 0, wrong = 0, skipped = 0;
+    const secStats = {};
+
+    qs.forEach(q => {
+      const u = window.PG_MOCK.answers[q.id];
+      const hasOpts = Array.isArray(q.options) && q.options.length > 0;
+      const rawSec = String(q.section || (hasOpts ? "QUANT_MCQ" : "QUANT_SA")).toUpperCase();
+      const bucket = rawSec.includes("SA") ? "QA-SA"
+        : rawSec.includes("DILR") ? "DILR"
+        : rawSec.includes("VARC") ? "VARC"
+        : rawSec.includes("HIGH") ? "Higher Math"
+        : "QA-MCQ";
+
+      if (!secStats[bucket]) secStats[bucket] = { total: 0, correct: 0, wrong: 0, score: 0 };
+      secStats[bucket].total++;
+
+      if (u === undefined || u === null || String(u).trim() === "") {
+        skipped++;
+      } else if (hasOpts ? Number(u) === Number(q.answer) : String(u).trim().toLowerCase() === String(q.answer).trim().toLowerCase()) {
+        correct++;
+        score += 4;
+        secStats[bucket].correct++;
+        secStats[bucket].score += 4;
+      } else {
+        wrong++;
+        secStats[bucket].wrong++;
+        if (hasOpts) {
+          score -= 1;
+          secStats[bucket].score -= 1;
         }
-      });
+      }
+    });
 
-      const spec = window.getActiveIpmModeSpec();
-      const serialId = window.PG_MOCK.serialId || generateModeSerialId(window.PG_MOCK.modeCode || spec.code);
-      window.PG_MOCK.serialId = serialId;
+    const spec = window.getActiveIpmModeSpec();
+    const isPractice = Boolean(window.PG_MOCK.isPractice);
+    const defaultPrefix = isPractice ? `PRAC-${spec.code}` : spec.code;
+    const serialId = window.PG_MOCK.serialId || generateModeSerialId(defaultPrefix);
+    window.PG_MOCK.serialId = serialId;
+    window.PG_MOCK.submitted = true;
 
-      saveMockAttemptToLedger({
-        serialId: serialId,
-        modeCode: window.PG_MOCK.modeCode || spec.code,
-        title: window.PG_MOCK.title || spec.label,
-        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-        score: score,
-        maxScore: maxScore,
-        correct: correct,
-        wrong: wrong,
-        skipped: skipped,
-        accuracyPct: Math.round((correct / Math.max(1, correct + wrong)) * 100),
-        breakdown: { saScore, mcqScore, vaScore }
-      });
-    }
-    if (typeof origSubmitPgMock === "function") origSubmitPgMock();
+    const diag = computeStrengthAndDeficiency(secStats);
+
+    saveMockAttemptToLedger({
+      serialId: serialId,
+      isPractice: isPractice,
+      modeCode: window.PG_MOCK.modeCode || defaultPrefix,
+      campusKey: window.PG_MOCK.campusKey || spec.key,
+      title: window.PG_MOCK.title || spec.fullLabel,
+      date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      score: score,
+      maxScore: maxScore,
+      correct: correct,
+      wrong: wrong,
+      skipped: skipped,
+      accuracyPct: Math.round((correct / Math.max(1, correct + wrong)) * 100),
+      secStats: secStats,
+      strengths: diag.strengths,
+      deficiencies: diag.deficiencies,
+      secSummary: diag.secSummary
+    });
+
+    window.renderActiveTab();
   };
 
-  window.renderTab4 = function (el) {
+  function renderActiveOrSubmittedMockRunner(el, returnTabLabel) {
     const spec = window.getActiveIpmModeSpec();
-    const hist = getMockHistory().slice().reverse();
+    const qs = window.PG_MOCK.questions || [];
 
-    if (!window.PG_MOCK || !window.PG_MOCK.started) {
-      const hasStaged = window.PG_MOCK && Array.isArray(window.PG_MOCK.questions) && window.PG_MOCK.questions.length > 0;
-      const stagedMins = hasStaged ? Math.ceil(Math.max(300, window.PG_MOCK.questions.length * 90) / 60) : 0;
-
-      el.innerHTML = `
-        <div class="space-y-4">
-          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-lg">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <h2 class="text-lg font-bold text-white">Proctored Mock Simulator &bull; ${spec.label}</h2>
-                  <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-extrabold">Serial Prefix: ${spec.code}-YYYYMMDD-#NN</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-0.5">Aligned to active top mode pill (<strong>${spec.label}</strong>). Pattern: ${spec.pattern}. Every completed test logs a Serial ID for Tab 7 Forecaster sync.</p>
-              </div>
-            </div>
-
-            ${hasStaged ? `
-              <div class="p-5 rounded-2xl bg-indigo-950/60 border border-indigo-500/50 flex flex-wrap items-center justify-between gap-4">
-                <div class="space-y-1">
-                  <div class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-300">Ready from PYQ Vault</div>
-                  <div class="text-base font-bold text-white">${window.PG_MOCK.title}</div>
-                  <div class="text-xs text-slate-300">${window.PG_MOCK.questions.length} Questions &bull; ${stagedMins} Minutes</div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button type="button" onclick="window.PG_MOCK.serialId = '${generateModeSerialId(spec.code)}'; window.startStagedPgMock()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg cursor-pointer">
-                    Start Staged PYQ Mock &rarr;
-                  </button>
-                  <button type="button" onclick="window.exitPgMock()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold cursor-pointer">Clear</button>
-                </div>
-              </div>
-            ` : ""}
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div class="p-4 rounded-2xl bg-slate-950 border-2 border-indigo-500/60 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-extrabold uppercase text-indigo-400">ACTIVE TOP MODE MOCK</span>
-                  <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold">${spec.code}</span>
-                </div>
-                <div class="text-sm font-bold text-white">${spec.label}</div>
-                <p class="text-xs text-slate-400">${spec.qCount} Questions &bull; ${spec.mins} Mins &bull; Calibrated for ${spec.targetCampus}.</p>
-                <button type="button" onclick="window.launchModeAlignedIpmMock('${spec.code}', '${spec.apiExam}', ${spec.qCount}, '${spec.label} (${spec.qCount} Qs)')"
-                  class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition cursor-pointer">
-                  Start ${spec.code} Full Mock &rarr;
-                </button>
-              </div>
-
-              <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-extrabold uppercase text-amber-400">IPMAT INDORE &amp; RANCHI</span>
-                  <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">IPM-IND</span>
-                </div>
-                <div class="text-sm font-bold text-white">25 Questions &bull; 38 Mins</div>
-                <p class="text-xs text-slate-400">QA-SA (Zero Penalty), Higher Math MCQ &amp; VARC calibrated to Indore.</p>
-                <button type="button" onclick="window.launchModeAlignedIpmMock('IPM-IND', 'IPMAT', 25, 'IPMAT Indore & Ranchi Mock (25 Qs)')"
-                  class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold transition cursor-pointer">
-                  Start IPMAT Indore Mock &rarr;
-                </button>
-              </div>
-
-              <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-extrabold uppercase text-cyan-400">ROHTAK / JIPMAT / IIMB UG</span>
-                  <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">IPM-ROH / JIP</span>
-                </div>
-                <div class="text-sm font-bold text-white">30 Questions &bull; 40 Mins</div>
-                <p class="text-xs text-slate-400">Speed-intensive Quant, DILR &amp; Verbal sets for Rohtak, JIPMAT &amp; IIMB UG.</p>
-                <button type="button" onclick="window.launchModeAlignedIpmMock('IPM-ROH', 'ALL', 30, 'Rohtak / JIPMAT / IIMB UG Speed Mock (30 Qs)')"
-                  class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold transition cursor-pointer">
-                  Start Rohtak / JIPMAT Mock &rarr;
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- VERIFIED MOCK SERIAL ID LEDGER (ALIGNED TO TAB 7) -->
-          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 class="text-sm font-extrabold text-white">Verified Proctored Mock Attempt Ledger &amp; Serial IDs (${hist.length})</h3>
-                <p class="text-[11px] text-slate-400">Every completed mock logs a deterministic Serial ID synced directly to Tab 7 (8-IIM Call &amp; Target Forecaster).</p>
-              </div>
-              <button type="button" onclick="window.switchTab('tab7')" class="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold cursor-pointer">
-                Open Tab 7 Forecaster &rarr;
-              </button>
-            </div>
-
-            ${hist.length ? `
-              <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
-                      <th class="py-2 pr-2">Verified Serial ID</th>
-                      <th class="py-2 px-2">Exam Track</th>
-                      <th class="py-2 px-2">Date</th>
-                      <th class="py-2 px-2">Net Score</th>
-                      <th class="py-2 px-2">Accuracy</th>
-                      <th class="py-2 pl-2 text-right">Tab 7 Sync</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-800/70">
-                    ${hist.map(h => `
-                      <tr>
-                        <td class="py-2 pr-2 font-mono font-bold text-amber-300">${h.serialId}</td>
-                        <td class="py-2 px-2 text-white font-semibold">${h.title}</td>
-                        <td class="py-2 px-2 text-slate-400">${h.date || "Today"}</td>
-                        <td class="py-2 px-2 font-bold text-emerald-300">${h.score} / ${h.maxScore}</td>
-                        <td class="py-2 px-2 text-slate-300">${h.accuracyPct || 0}% (${h.correct}C / ${h.wrong}W)</td>
-                        <td class="py-2 pl-2 text-right">
-                          <button type="button" onclick="window.syncSpecificIpmMockToTab7('${h.serialId}')"
-                            class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold cursor-pointer">
-                            Sync to Tab 7 &rarr;
-                          </button>
-                        </td>
-                      </tr>
-                    `).join("")}
-                  </tbody>
-                </table>
-              </div>
-            ` : `
-              <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                No proctored mocks submitted yet. Complete any mock above to generate your first <code class="text-amber-300">${spec.code}-YYYYMMDD-#01</code> Serial ID and sync it to Tab 7.
-              </div>
-            `}
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    // Active / Submitted Mock view (delegate to PG_MOCK renderer and inject Serial ID badge)
-    const qs = window.PG_MOCK.questions;
     if (window.PG_MOCK.submitted) {
       const latest = getMockHistory().slice(-1)[0] || {};
       el.innerHTML = `
@@ -390,24 +390,36 @@
           <div class="bg-slate-900/95 border border-emerald-500/40 rounded-2xl p-6 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-extrabold">${window.PG_MOCK.serialId || spec.code}</span>
-                <h2 class="text-lg font-bold text-white mt-1">Official Scorecard: ${window.PG_MOCK.title}</h2>
+                <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-extrabold">${latest.serialId || window.PG_MOCK.serialId}</span>
+                <h2 class="text-lg font-bold text-white mt-1">Diagnostic Scorecard: ${window.PG_MOCK.title}</h2>
               </div>
-              <div class="flex gap-2">
-                <button type="button" onclick="window.syncSpecificIpmMockToTab7('${window.PG_MOCK.serialId || ""}')"
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="window.syncSpecificIpmMockToTab7('${latest.serialId || ""}')"
                   class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-extrabold text-white shadow cursor-pointer">
-                  &#8635; Sync Score to Tab 7 Forecaster &rarr;
+                  &#8635; Sync to Tab 7 Forecaster &amp; Deficiency Audit &rarr;
                 </button>
                 <button type="button" onclick="window.exitPgMock()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-bold text-white cursor-pointer">
-                  Back to Mock Lobby
+                  Back to ${returnTabLabel}
                 </button>
               </div>
             </div>
+
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
               <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Net Score</div><div class="text-xl font-extrabold text-emerald-400">${latest.score ?? 0} / ${latest.maxScore ?? qs.length * 4}</div></div>
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Correct (+4)</div><div class="text-xl font-extrabold text-emerald-300">${latest.correct ?? 0}</div></div>
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Incorrect (-1 MCQ / 0 SA)</div><div class="text-xl font-extrabold text-rose-400">${latest.wrong ?? 0}</div></div>
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Serial ID Logged</div><div class="text-sm font-mono font-extrabold text-amber-300 pt-1">${window.PG_MOCK.serialId || "LOGGED"}</div></div>
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Accuracy</div><div class="text-xl font-extrabold text-indigo-300">${latest.accuracyPct ?? 0}%</div></div>
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Correct / Wrong</div><div class="text-xl font-extrabold text-white">${latest.correct ?? 0}C / ${latest.wrong ?? 0}W</div></div>
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs text-slate-400">Logged Serial ID</div><div class="text-xs font-mono font-extrabold text-amber-300 pt-1.5">${latest.serialId || "LOGGED"}</div></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-700/40">
+                <div class="font-extrabold text-emerald-300 uppercase text-[10px] mb-1">&#9989; Gauged Strengths</div>
+                <div class="text-emerald-100">${(latest.strengths || []).join(" • ")}</div>
+              </div>
+              <div class="p-3.5 rounded-xl bg-rose-950/30 border border-rose-700/40">
+                <div class="font-extrabold text-rose-300 uppercase text-[10px] mb-1">&#9888;&#65039; Gauged Deficiencies &amp; Focus Areas</div>
+                <div class="text-rose-100">${(latest.deficiencies || []).join(" • ")}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -415,7 +427,6 @@
       return;
     }
 
-    // Active question runner
     const idx = window.PG_MOCK.currentIndex;
     const q = qs[idx];
     const hasOpts = Array.isArray(q.options) && q.options.length > 0;
@@ -469,54 +480,285 @@
         </div>
       </div>
     `;
+  }
+
+  // TAB 3: VARC & Vocab Studio + Embedded AI PI / WAT Evaluator
+  window.setIpmTab3Submode = function (m) {
+    window.IPM_T3_SUBMODE = m;
+    window.renderActiveTab();
   };
 
-  // TAB 5: 5-Yr PYQ Vault
-  window.renderTab5 = function (el) {
-    if (typeof origRenderTab9Pyq === "function") origRenderTab9Pyq(el);
-  };
-
-  // TAB 6: Split-Screen Trap Doctor & AI Doubts
-  window.askIpmTrapDoctor = function (title, detail) {
-    const qBox = document.getElementById("doubt-question") || document.querySelector("#ipm-t6-right textarea");
-    if (qBox) {
-      qBox.value = `Explain this IPMAT / IIM UG exam trap with a worked example and 30-second antidote:\n${title} — ${detail}`;
-      window._IS_PRESET_TRAP_DOUBT = true;
-      const btn = document.querySelector("#ipm-t6-right button");
-      if (btn) btn.click();
+  window.renderTab3 = function (el) {
+    el.innerHTML = `
+      <div class="mb-4 p-3 rounded-2xl bg-slate-900/95 border border-purple-500/30 flex flex-wrap items-center justify-between gap-2">
+        <div class="text-xs font-bold text-slate-300">Studio Workspace Mode:</div>
+        <div class="flex gap-2">
+          <button type="button" onclick="window.setIpmTab3Submode('varc')"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition ${window.IPM_T3_SUBMODE === 'varc' ? 'bg-purple-600 text-white shadow' : 'bg-slate-950 text-slate-300 border border-slate-800'}">
+            &#128214; VARC, RC &amp; Confusable Vocab Studio
+          </button>
+          <button type="button" onclick="window.setIpmTab3Submode('pi_wat')"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition ${window.IPM_T3_SUBMODE === 'pi_wat' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-950 text-slate-300 border border-slate-800'}">
+            &#127908; 8-IIM AI PI / WAT &amp; Current Affairs Evaluator (57 Prompts)
+          </button>
+        </div>
+      </div>
+      <div id="ipm-tab3-inner"></div>
+    `;
+    const inner = document.getElementById("ipm-tab3-inner");
+    if (window.IPM_T3_SUBMODE === "pi_wat" && typeof origRenderTab5Pi === "function") {
+      origRenderTab5Pi(inner);
+    } else if (typeof origRenderTab3 === "function") {
+      origRenderTab3(inner);
     }
   };
 
-  window.renderTab6 = function (el) {
+  // TAB 4: Proctored Full Mock Simulator (Campus-Aligned + Verified Serial ID Log)
+  window.renderTab4 = function (el) {
+    if (window.PG_MOCK && window.PG_MOCK.started && !window.PG_MOCK.isPractice) {
+      renderActiveOrSubmittedMockRunner(el, "Proctored Mock Lobby");
+      return;
+    }
+
+    const spec = window.getActiveIpmModeSpec();
+    const fullHist = getMockHistory().filter(h => !h.isPractice).slice().reverse();
+
     el.innerHTML = `
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <div id="ipm-t6-left" class="lg:col-span-7 space-y-4"></div>
-        <div id="ipm-t6-right" class="lg:col-span-5 space-y-4 lg:sticky lg:top-24"></div>
+      <div class="space-y-4">
+        <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-lg">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-lg font-bold text-white">Proctored Full Mock Simulator &bull; ${spec.fullLabel}</h2>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-extrabold">Serial ID: ${spec.code}-YYYYMMDD-#NN</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Pattern: ${spec.pattern}. Completed mocks generate a Serial ID and sectional Strength/Deficiency diagnostic synced to Tab 7.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-5 rounded-2xl bg-slate-950 border-2 border-indigo-500/60 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-extrabold uppercase text-indigo-400">SELECTED CAMPUS PROCTORED MOCK</span>
+                <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold">${spec.code}</span>
+              </div>
+              <div class="text-base font-bold text-white">${spec.fullLabel}</div>
+              <p class="text-xs text-slate-400">${spec.qCount} Questions &bull; ${spec.mins} Minutes &bull; ${spec.note}</p>
+              <button type="button" onclick="window.launchIpmUnifiedMock({ isPractice: false, modeCode: '${spec.code}', apiExam: '${spec.apiExam}', qCount: ${spec.qCount}, title: '${spec.fullLabel} (${spec.qCount} Qs)' })"
+                class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition cursor-pointer shadow">
+                Start Proctored Full Mock (${spec.code}) &rarr;
+              </button>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col justify-between">
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-extrabold uppercase text-emerald-400">FREE UNLIMITED SECTIONAL &amp; PYQ DRILLS</span>
+                  <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">PRAC-${spec.code}</span>
+                </div>
+                <div class="text-base font-bold text-white">Need Unlimited Sectional Practice Without Using Full Mock Quota?</div>
+                <p class="text-xs text-slate-400">Launch unlimited 15-Q sectional sprints (QA-SA, QA-MCQ, DILR, VARC) or custom PYQ drills in <strong>Tab 5: Practice Mock &amp; Sectional Sprints</strong>.</p>
+              </div>
+              <button type="button" onclick="window.switchTab('tab5')"
+                class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold transition cursor-pointer">
+                Go to Tab 5: Practice Mock &amp; Sectional Sprints &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROCTORED MOCK SERIAL ID & STRENGTH/DEFICIENCY LEDGER -->
+        <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-extrabold text-white">Proctored Mock Attempt Log &amp; Sectional Strength/Deficiency Ledger (${fullHist.length})</h3>
+              <p class="text-[11px] text-slate-400">Click <strong>Sync to Tab 7</strong> on any logged mock to project your current admission readiness and sectional gaps.</p>
+            </div>
+            <button type="button" onclick="window.switchTab('tab7')" class="px-3 py-1.5 rounded-xl bg-indigo-600/25 border border-indigo-500/40 text-indigo-300 text-xs font-bold cursor-pointer">
+              Open Tab 7 Forecaster &rarr;
+            </button>
+          </div>
+
+          ${fullHist.length ? `
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                    <th class="py-2 pr-2">Serial ID</th>
+                    <th class="py-2 px-2">Campus Track</th>
+                    <th class="py-2 px-2">Score &amp; Acc</th>
+                    <th class="py-2 px-2">Strengths &amp; Deficiencies</th>
+                    <th class="py-2 pl-2 text-right">Tab 7 Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/70">
+                  ${fullHist.map(h => `
+                    <tr>
+                      <td class="py-2.5 pr-2 font-mono font-bold text-amber-300">${h.serialId}</td>
+                      <td class="py-2.5 px-2 text-white font-semibold">${h.title}<div class="text-[10px] text-slate-400">${h.date || "Today"}</div></td>
+                      <td class="py-2.5 px-2 font-bold text-emerald-300">${h.score}/${h.maxScore} (${h.accuracyPct || 0}%)</td>
+                      <td class="py-2.5 px-2 text-[11px]">
+                        <div class="text-emerald-300"><strong>+</strong> ${(h.strengths || []).join(", ")}</div>
+                        <div class="text-rose-300"><strong>-</strong> ${(h.deficiencies || []).join(", ")}</div>
+                      </td>
+                      <td class="py-2.5 pl-2 text-right">
+                        <button type="button" onclick="window.syncSpecificIpmMockToTab7('${h.serialId}')"
+                          class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold cursor-pointer">
+                          Sync to Tab 7 &rarr;
+                        </button>
+                      </td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          ` : `<div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">No proctored mocks logged yet. Complete a mock above to generate <code class="text-amber-300">${spec.code}-YYYYMMDD-#01</code>.</div>`}
+        </div>
       </div>
     `;
-    const left = document.getElementById("ipm-t6-left");
-    const right = document.getElementById("ipm-t6-right");
-    if (typeof origRenderTab4Trap === "function") {
-      origRenderTab4Trap(left);
-      setTimeout(() => {
-        left.querySelectorAll("h3").forEach(h => {
-          const card = h.closest("div.rounded-2xl");
-          if (card && !card.querySelector(".ipm-ask-trap-btn")) {
-            const titleText = (h.textContent || "").trim();
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "ipm-ask-trap-btn mt-2 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-extrabold cursor-pointer";
-            btn.innerHTML = "&#9889; Ask AI Doubt Doctor About This Trap &rarr;";
-            btn.onclick = () => window.askIpmTrapDoctor(titleText, "Verify domain constraints & +4/-1 risk.");
-            h.insertAdjacentElement("afterend", btn);
-          }
-        });
-      }, 40);
-    }
-    if (typeof origRenderTab7Doubt === "function") origRenderTab7Doubt(right);
   };
 
-  // TAB 7: Mode-Aligned 8-IIM Call & Target Forecaster + Synced Serial ID Log
+  // TAB 5: Dedicated Practice Mock & Sectional Sprints (100% Free & Unlimited)
+  window.renderTab5 = function (el) {
+    if (window.PG_MOCK && window.PG_MOCK.started && window.PG_MOCK.isPractice) {
+      renderActiveOrSubmittedMockRunner(el, "Practice Mock Lobby");
+      return;
+    }
+
+    const spec = window.getActiveIpmModeSpec();
+    const hasStagedPyq = window.PG_MOCK && !window.PG_MOCK.started && Array.isArray(window.PG_MOCK.questions) && window.PG_MOCK.questions.length > 0;
+    const pracHist = getMockHistory().filter(h => h.isPractice).slice().reverse();
+
+    const sectionalCards = [
+      { title: "QA Short Answer (Zero Negative)", section: "QUANT_SA", code: `PRAC-${spec.code}-SA`, qCount: 12, mins: 18, badge: "INDORE SA DRILL", desc: "Numeric short-answer drills with 0 negative marking penalty." },
+      { title: "QA & Higher Math MCQ Sprint", section: "QUANT_MCQ", code: `PRAC-${spec.code}-QA`, qCount: 15, mins: 22, badge: "QUANT +4/-1", desc: "Arithmetic, Algebra, Logs, Matrices & Functions speed sprint." },
+      { title: "DI & Logical Reasoning Set", section: "DILR", code: `PRAC-${spec.code}-LR`, qCount: 15, mins: 22, badge: "DILR +4/-1", desc: "Caselets, Data Sufficiency, Seating & Business Analytics." },
+      { title: "VARC, RC & Confusable Vocab", section: "VARC", code: `PRAC-${spec.code}-VA`, qCount: 15, mins: 20, badge: "VERBAL +4/-1", desc: "Reading Comprehension, Para-jumbles, Idioms & Grammar." }
+    ];
+
+    el.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-slate-900/95 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-lg">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-lg font-bold text-white">Practice Mock &amp; Sectional Sprints &bull; ${spec.shortLabel}</h2>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold uppercase">100% FREE &amp; UNLIMITED</span>
+                <span class="px-2.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[10px] font-bold">PRAC-${spec.code}-YYYYMMDD-#NN</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Unlimited sectional practice mocks and PYQ drills with instant Strength &amp; Deficiency diagnostics—without consuming your Tab 4 Full Mock quota.</p>
+            </div>
+          </div>
+
+          ${hasStagedPyq ? `
+            <div class="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/50 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-extrabold uppercase text-indigo-300">Staged from Tab 6 PYQ Vault</div>
+                <div class="text-sm font-bold text-white">${window.PG_MOCK.title} (${window.PG_MOCK.questions.length} Qs)</div>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" onclick="window.PG_MOCK.isPractice = true; window.PG_MOCK.serialId = '${generateModeSerialId("PRAC-" + spec.code)}'; window.startStagedPgMock()"
+                  class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold cursor-pointer">
+                  Start Staged PYQ Practice Mock &rarr;
+                </button>
+                <button type="button" onclick="window.exitPgMock()" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold cursor-pointer">Clear</button>
+              </div>
+            </div>
+          ` : ""}
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            ${sectionalCards.map(c => `
+              <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 flex flex-col justify-between">
+                <div class="space-y-1.5">
+                  <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-extrabold">${c.badge}</span>
+                  <div class="text-sm font-bold text-white pt-1">${c.title}</div>
+                  <div class="text-[11px] font-semibold text-indigo-300">${c.qCount} Qs &bull; ${c.mins} Mins</div>
+                  <p class="text-[11px] text-slate-400">${c.desc}</p>
+                </div>
+                <button type="button" onclick="window.launchIpmUnifiedMock({ isPractice: true, modeCode: '${c.code}', section: '${c.section}', qCount: ${c.qCount}, title: '${c.title} (${spec.shortLabel})' })"
+                  class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold cursor-pointer">
+                  Start Practice Sprint &rarr;
+                </button>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+
+        <!-- PRACTICE MOCK LOG -->
+        <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-extrabold text-white">Practice Mock &amp; Sectional Drill Log (${pracHist.length})</h3>
+          ${pracHist.length ? `
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                    <th class="py-2 pr-2">Practice Serial ID</th>
+                    <th class="py-2 px-2">Drill Module</th>
+                    <th class="py-2 px-2">Score &amp; Acc</th>
+                    <th class="py-2 px-2">Strengths &amp; Deficiencies</th>
+                    <th class="py-2 pl-2 text-right">Sync</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/70">
+                  ${pracHist.map(h => `
+                    <tr>
+                      <td class="py-2 pr-2 font-mono font-bold text-emerald-300">${h.serialId}</td>
+                      <td class="py-2 px-2 text-white font-semibold">${h.title}</td>
+                      <td class="py-2 px-2 font-bold text-indigo-300">${h.score}/${h.maxScore} (${h.accuracyPct || 0}%)</td>
+                      <td class="py-2 px-2 text-[11px]">
+                        <span class="text-emerald-300"><strong>+</strong> ${(h.strengths || []).join(", ")}</span> &bull;
+                        <span class="text-rose-300"><strong>-</strong> ${(h.deficiencies || []).join(", ")}</span>
+                      </td>
+                      <td class="py-2 pl-2 text-right">
+                        <button type="button" onclick="window.syncSpecificIpmMockToTab7('${h.serialId}')"
+                          class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600 text-white text-[10px] font-bold cursor-pointer">
+                          Sync to Tab 7
+                        </button>
+                      </td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          ` : `<div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">No practice sprints completed yet. Launch any sectional drill above to log <code class="text-emerald-300">PRAC-${spec.code}-YYYYMMDD-#01</code>.</div>`}
+        </div>
+      </div>
+    `;
+  };
+
+  // Route "Practice Filtered Set in Tab Mock" from PYQ Vault into Tab 5 Practice Mock
+  window.startCustomPyqMock = function (questions, title) {
+    if (!Array.isArray(questions) || !questions.length) return;
+    if (window.PG_MOCK && window.PG_MOCK.timerId) clearInterval(window.PG_MOCK.timerId);
+    window.PG_MOCK = {
+      started: false,
+      submitted: false,
+      isPractice: true,
+      title: title || `Filtered PYQ Practice Set (${questions.length} Qs)`,
+      questions: questions,
+      currentIndex: 0,
+      answers: {},
+      secondsLeft: Math.max(300, questions.length * 90),
+      timerId: null
+    };
+    window.switchTab("tab5");
+  };
+
+  // TAB 6: 5-Yr PYQ Vault (2019-2026)
+  window.renderTab6 = function (el) {
+    if (typeof origRenderTab9Pyq === "function") {
+      origRenderTab9Pyq(el);
+      setTimeout(() => {
+        el.querySelectorAll("button").forEach(b => {
+          if (/Practice Filtered Set/i.test(b.textContent || "")) {
+            b.textContent = "Practice Filtered Set in Tab 5 Practice Mock →";
+          }
+        });
+      }, 30);
+    }
+  };
+
+  // TAB 7: Individual 8-IIM Call & Target Forecaster + Live Sync + Strength/Deficiency Audit
   window.IPM_T7_STATE = window.IPM_T7_STATE || {
     c10: 92,
     c12: 90,
@@ -528,28 +770,28 @@
     jipmat: 325,
     iimbUg: 245,
     jeePct: 96.8,
-    syncedSerialId: ""
+    syncedRecord: null
   };
 
   function applyMockRecordToT7State(rec) {
     if (!rec) return;
     const ratio = Math.min(1, Math.max(0.2, Number(rec.score || 0) / Math.max(1, Number(rec.maxScore || 120))));
-    const code = String(rec.modeCode || "").toUpperCase();
-    window.IPM_T7_STATE.syncedSerialId = rec.serialId || "";
+    const cKey = String(rec.campusKey || "").toUpperCase();
+    window.IPM_T7_STATE.syncedRecord = rec;
 
-    if (code === "IPM-ROH") {
+    if (cKey === "ROHTAK") {
       window.IPM_T7_STATE.rohtak = Math.round(480 * ratio);
-    } else if (code === "IPM-JIP") {
+    } else if (cKey === "BODHGAYA" || cKey === "JAMMU") {
       window.IPM_T7_STATE.jipmat = Math.round(400 * ratio);
-    } else if (code === "IPM-IIMB") {
+    } else if (cKey === "BANGALORE") {
       window.IPM_T7_STATE.iimbUg = Math.round(300 * ratio);
-    } else if (code === "IPM-IIMM") {
+    } else if (cKey === "MUMBAI" || cKey === "LUCKNOW") {
       window.IPM_T7_STATE.jeePct = +(88 + 11.5 * ratio).toFixed(1);
     } else {
       window.IPM_T7_STATE.indSa = Math.round(60 * ratio);
       window.IPM_T7_STATE.indMcq = Math.round(120 * ratio);
       window.IPM_T7_STATE.indVa = Math.round(180 * ratio);
-      if (code === "IPM-ALL") {
+      if (cKey === "ALL") {
         window.IPM_T7_STATE.rohtak = Math.round(480 * ratio);
         window.IPM_T7_STATE.jipmat = Math.round(400 * ratio);
         window.IPM_T7_STATE.iimbUg = Math.round(300 * ratio);
@@ -571,10 +813,8 @@
   window.syncLatestIpmMockToTab7 = function () {
     const spec = window.getActiveIpmModeSpec();
     const hist = getMockHistory();
-    const modeMatch = hist.slice().reverse().find(h => h.modeCode === spec.code) || hist[hist.length - 1];
-    if (modeMatch) {
-      applyMockRecordToT7State(modeMatch);
-    }
+    const match = hist.slice().reverse().find(h => h.campusKey === spec.key) || hist[hist.length - 1];
+    if (match) applyMockRecordToT7State(match);
     window.renderActiveTab();
   };
 
@@ -593,6 +833,7 @@
 
     const campuses = [
       {
+        key: "INDORE",
         name: "IIM Indore (5-Yr IPM)",
         yourScore: `${indTotal}/360 (ATS ${indAts}/65)`,
         cutoff: "SA ≥ 24 • MCQ ≥ 40 • VA ≥ 116 (Total ~180+)",
@@ -601,6 +842,7 @@
         note: s.indSa < 24 ? `Need +${24 - s.indSa} in QA-SA` : s.indMcq < 40 ? `Need +${40 - s.indMcq} in QA-MCQ` : s.indVa < 116 ? `Need +${116 - s.indVa} in VA` : "All 3 sectional cutoffs cleared!"
       },
       {
+        key: "RANCHI",
         name: "IIM Ranchi (5-Yr IPM)",
         yourScore: `${indTotal}/360 + Acads ${((s.c10 + s.c12) / 2).toFixed(1)}%`,
         cutoff: "Total ~172+ (No sectional bar, 20% 10th/12th weight)",
@@ -609,6 +851,7 @@
         note: indTotal >= 172 ? "Strong PI shortlist zone" : `Need +${172 - indTotal} overall IPMAT marks`
       },
       {
+        key: "ROHTAK",
         name: "IIM Rohtak (5-Yr IPM)",
         yourScore: `${s.rohtak}/480 (Pre-PI ${rohtakComp}/75)`,
         cutoff: "General ~385–405 / 480 + 30% Acad Weight",
@@ -617,6 +860,7 @@
         note: s.rohtak >= 390 ? "Above expected General PI call cutoff" : `Need +${390 - s.rohtak} marks in Rohtak CBT`
       },
       {
+        key: "BODHGAYA",
         name: "IIM Bodh Gaya (5-Yr IPM)",
         yourScore: `${s.jipmat}/400`,
         cutoff: "General ~310–325 / 400 (100% JIPMAT Merit)",
@@ -625,14 +869,16 @@
         note: s.jipmat >= 315 ? "Direct merit shortlist range" : `Need +${315 - s.jipmat} marks in JIPMAT`
       },
       {
+        key: "JAMMU",
         name: "IIM Jammu (5-Yr IPM)",
         yourScore: `${s.jipmat}/400`,
-        cutoff: "General ~305–320 / 400 + Gender Diversity",
+        cutoff: "General ~305–320 / 400 + Diversity",
         gap: Math.max(0, 310 - s.jipmat),
         eligible: s.jipmat >= 310,
         note: s.jipmat >= 310 ? "Competitive for Merit List 1" : `Need +${310 - s.jipmat} marks in JIPMAT`
       },
       {
+        key: "BANGALORE",
         name: "IIM Bangalore (B.Sc. Econ/DS & BBA DBE)",
         yourScore: `${s.iimbUg}/300 • Class 12 Math: ${s.hasMath ? "Yes" : "No"}`,
         cutoff: "Class 12 Math mandatory for B.Sc. • ~235+/300",
@@ -641,6 +887,7 @@
         note: !s.hasMath ? "Ineligible for B.Sc. (No Class 12 Math); eligible for BBA DBE" : s.iimbUg >= 235 ? "Eligible for both B.Sc. & BBA DBE PI" : `Need +${235 - s.iimbUg} in IIMB UG test`
       },
       {
+        key: "MUMBAI",
         name: "IIM Mumbai (4-Yr BS Digital & Supply Chain)",
         yourScore: `JEE ${s.jeePct}%ile • Math: ${s.hasMath ? "Yes" : "No"}`,
         cutoff: "Class 12 Math mandatory • ~96.0+%ile equivalent",
@@ -649,6 +896,7 @@
         note: !s.hasMath ? "Requires Class 12 Mathematics" : s.jeePct >= 96.0 ? "Meets quantitative & JEE benchmark" : `Need +${(96.0 - s.jeePct).toFixed(1)}%ile`
       },
       {
+        key: "LUCKNOW",
         name: "IIM Lucknow (4-Yr Tech-Mgmt UG)",
         yourScore: `Acads ${((s.c10 + s.c12) / 2).toFixed(1)}% • Math: ${s.hasMath ? "Yes" : "No"}`,
         cutoff: "Strong Class 10/12 (85%+) + Quantitative Aptitude",
@@ -659,17 +907,18 @@
     ];
 
     const callsCount = campuses.filter(c => c.eligible).length;
+    const synced = s.syncedRecord;
 
     el.innerHTML = `
       <div class="space-y-4">
         <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-lg font-bold text-white">8-IIM Call &amp; Target Forecaster &bull; ${spec.label}</h2>
+              <h2 class="text-lg font-bold text-white">8-IIM Call &amp; Target Forecaster &bull; ${spec.fullLabel}</h2>
               <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-extrabold">${callsCount} / 8 IIMs Shortlist Ready</span>
-              ${s.syncedSerialId ? `<span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold">Synced: ${s.syncedSerialId}</span>` : ""}
+              ${synced ? `<span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold">Synced: ${synced.serialId}</span>` : ""}
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">Active Mode Focus: <strong>${spec.targetCampus}</strong> (${spec.code}). Sync any Tab 4 mock Serial ID or adjust sliders below.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Select any of the 8 IIM pills above and click <strong>Sync Mock</strong> to evaluate present level, sectional strengths, and deficiencies.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" onclick="window.syncLatestIpmMockToTab7()"
@@ -682,6 +931,24 @@
             </button>
           </div>
         </div>
+
+        ${synced ? `
+          <div class="bg-slate-900/95 border border-indigo-500/40 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+              <div class="text-[10px] font-extrabold uppercase text-amber-400">Present Level (${synced.serialId})</div>
+              <div class="text-base font-extrabold text-white mt-0.5">${synced.score} / ${synced.maxScore} (${synced.accuracyPct || 0}% Acc)</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">${synced.secSummary || synced.title}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-700/40">
+              <div class="text-[10px] font-extrabold uppercase text-emerald-300">&#9989; Gauged Strengths</div>
+              <div class="text-emerald-100 mt-1">${(synced.strengths || []).join(" • ")}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-rose-950/30 border border-rose-700/40">
+              <div class="text-[10px] font-extrabold uppercase text-rose-300">&#9888;&#65039; Gauged Deficiencies</div>
+              <div class="text-rose-100 mt-1">${(synced.deficiencies || []).join(" • ")}</div>
+            </div>
+          </div>
+        ` : ""}
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
           <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3.5 text-xs">
@@ -731,7 +998,7 @@
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3 overflow-x-auto">
               <div class="flex items-center justify-between">
                 <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">8-IIM Campus Shortlist &amp; Cutoff Deficiency Matrix</div>
-                <span class="text-[11px] text-slate-400">Highlighted: ${spec.targetCampus}</span>
+                <span class="text-[11px] text-slate-400">Active Campus: ${spec.shortLabel}</span>
               </div>
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
@@ -744,11 +1011,11 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800/70">
                   ${campuses.map(c => {
-                    const isFocused = c.name === spec.targetCampus;
+                    const isFocused = c.key === spec.key;
                     return `
                     <tr class="${isFocused ? 'bg-indigo-950/40' : ''}">
                       <td class="py-2.5 pr-2 font-bold text-white">
-                        ${c.name} ${isFocused ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 text-[9px] uppercase">Active Mode</span>' : ''}
+                        ${c.name} ${isFocused ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 text-[9px] uppercase">Selected</span>' : ''}
                         <div class="text-[10px] font-normal text-slate-400">${c.cutoff}</div>
                       </td>
                       <td class="py-2.5 px-2 font-mono text-indigo-300">${c.yourScore}</td>
@@ -764,18 +1031,18 @@
               </table>
             </div>
 
-            <!-- ALIGNED TAB 4 MOCK SERIAL ID LOGS INSIDE TAB 7 -->
+            <!-- COMPLETE MOCK SERIAL ID LOG (TAB 4 + TAB 5) -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
               <div class="flex items-center justify-between">
-                <span class="font-extrabold uppercase tracking-wider text-amber-400">Synced Tab 4 Mock Serial ID Logs (${hist.length})</span>
-                <span class="text-[11px] text-slate-400">Click any Serial ID to load into Forecaster</span>
+                <span class="font-extrabold uppercase tracking-wider text-amber-400">Executed Mock Serial ID Logs (${hist.length})</span>
+                <span class="text-[11px] text-slate-400">Click any Serial ID to inspect strengths &amp; deficiencies</span>
               </div>
               ${hist.length ? `
                 <div class="flex flex-wrap gap-2">
-                  ${hist.slice(0, 8).map(h => `
+                  ${hist.slice(0, 10).map(h => `
                     <button type="button" onclick="window.syncSpecificIpmMockToTab7('${h.serialId}')"
                       class="px-3 py-1.5 rounded-xl border text-left transition cursor-pointer ${
-                        s.syncedSerialId === h.serialId
+                        synced && synced.serialId === h.serialId
                           ? "bg-amber-500/20 border-amber-400 text-amber-200 font-bold"
                           : "bg-slate-950 border-slate-800 text-slate-300 hover:border-indigo-500"
                       }">
@@ -784,11 +1051,51 @@
                     </button>
                   `).join("")}
                 </div>
-              ` : `<div class="text-[11px] text-slate-400">No Tab 4 mock logs yet. Complete a mock in Tab 4 to populate mode-tagged Serial IDs here.</div>`}
+              ` : `<div class="text-[11px] text-slate-400">No mock logs yet. Execute a mock in Tab 4 or Tab 5 to populate Serial IDs here.</div>`}
             </div>
           </div>
         </div>
       </div>
     `;
+  };
+
+  // TAB 8: Split-Screen Trap Doctor (56 Traps + EV Sim) & Socratic AI Doubt Solver
+  window.askIpmTrapDoctor = function (title, detail) {
+    const qBox = document.getElementById("doubt-question") || document.querySelector("#ipm-t8-right textarea");
+    if (qBox) {
+      qBox.value = `Explain this IPMAT / IIM UG exam trap with a worked example and 30-second antidote:\n${title} — ${detail}`;
+      window._IS_PRESET_TRAP_DOUBT = true;
+      const btn = document.querySelector("#ipm-t8-right button");
+      if (btn) btn.click();
+    }
+  };
+
+  window.renderTab8 = function (el) {
+    el.innerHTML = `
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div id="ipm-t8-left" class="lg:col-span-7 space-y-4"></div>
+        <div id="ipm-t8-right" class="lg:col-span-5 space-y-4 lg:sticky lg:top-24"></div>
+      </div>
+    `;
+    const left = document.getElementById("ipm-t8-left");
+    const right = document.getElementById("ipm-t8-right");
+    if (typeof origRenderTab4Trap === "function") {
+      origRenderTab4Trap(left);
+      setTimeout(() => {
+        left.querySelectorAll("h3").forEach(h => {
+          const card = h.closest("div.rounded-2xl");
+          if (card && !card.querySelector(".ipm-ask-trap-btn")) {
+            const titleText = (h.textContent || "").trim();
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "ipm-ask-trap-btn mt-2 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-extrabold cursor-pointer";
+            btn.innerHTML = "&#9889; Ask AI Doubt Doctor About This Trap &rarr;";
+            btn.onclick = () => window.askIpmTrapDoctor(titleText, "Verify domain constraints & +4/-1 risk.");
+            h.insertAdjacentElement("afterend", btn);
+          }
+        });
+      }, 40);
+    }
+    if (typeof origRenderTab7Doubt === "function") origRenderTab7Doubt(right);
   };
 })();
